@@ -1,0 +1,17 @@
+#!/bin/sh
+# Design rules pre-commit verification hook
+echo "Checking design rules compliance..."
+
+node scripts/design-check.mjs
+RESULT=$?
+
+if [ $RESULT -ne 0 ]; then
+  echo ""
+  echo "❌ Commit blocked by Design Rules Pre-commit Hook."
+  echo "Please fix all design violations before committing."
+  echo "See DESIGN_RULES.md for rules and guidelines."
+  exit 1
+fi
+
+echo "✅ Design rules check passed."
+exit 0

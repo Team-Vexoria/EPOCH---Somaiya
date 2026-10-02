@@ -1,0 +1,50 @@
+/* Design Tokens (CSS Variables & Tailwind v4 @theme support) */
+:root {
+  /* Neutral Family (Default Light Theme) */
+  --color-neutral-bg: #FBF9F5;
+  --color-neutral-surface: #FFFFFF;
+  --color-neutral-border: #E2DED4;
+  --color-neutral-muted: #737067;
+  --color-neutral-ink: #1C1917;
+
+  /* Domain Tokens - TODO: Set from docs/DESIGN_BRIEF.md */
+  --color-primary: #B44A28;
+  --color-primary-hover: #9C3D1F;
+  --color-primary-fg: #FFFFFF;
+
+  --color-secondary: #2F4858;
+  --color-secondary-hover: #233743;
+  --color-secondary-fg: #FFFFFF;
+
+  --color-signal: #D9381E;
+  --color-signal-fg: #FFFFFF;
+}
+
+/* Tailwind v4 theme override */
+@theme {
+  --color-neutral-bg: #FBF9F5;
+  --color-neutral-surface: #FFFFFF;
+  --color-neutral-border: #E2DED4;
+  --color-neutral-muted: #737067;
+  --color-neutral-ink: #1C1917;
+
+  --color-primary: #B44A28;
+  --color-primary-hover: #9C3D1F;
+  --color-primary-fg: #FFFFFF;
+
+  --color-secondary: #2F4858;
+  --color-secondary-hover: #233743;
+  --color-secondary-fg: #FFFFFF;
+
+  --color-signal: #D9381E;
+  --color-signal-fg: #FFFFFF;
+
+  /* Minimum font size 14px */
+  --font-size-xs: 14px;
+  --font-size-sm: 14px;
+  --font-size-base: 16px;
+
+  /* Deliberate hard offset shadows */
+  --shadow-hard: 2px 2px 0px 0px rgba(28, 25, 23, 1);
+  --shadow-hard-md: 4px 4px 0px 0px rgba(28, 25, 23, 1);
+}
