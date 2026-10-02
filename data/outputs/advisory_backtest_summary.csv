@@ -1,0 +1,4 @@
+crop,decisions_tested,hold_recommendations,sell_now_recommendations,average_gain_rs_per_quintal,median_gain_rs_per_quintal,advisory_win_rate
+onion,24,16,8,-75.38,0.0,29.2
+soyabean,24,11,13,-2.92,0.0,20.8
+tomato,27,0,27,267.3,205.0,66.7

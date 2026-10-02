@@ -1,0 +1,14 @@
+crop,mandi,distance_from_nashik_km,forecast_price_rs_per_quintal,transport_cost_rs_per_quintal,storage_cost_rs_per_quintal,expected_net_price_rs_per_quintal,expected_net_return_rs,confidence
+onion,Sangamner,66,802.67,165.0,25,612.67,12253.4,Medium
+onion,Lasalgaon,50,645.0,125.0,25,495.0,9900.0,Medium
+onion,Kopargaon,74,667.67,185.0,25,457.67,9153.4,Medium
+onion,Ahmednagar,146,844.33,365.0,25,454.33,9086.6,Medium
+onion,Nashik,0,476.0,0.0,25,451.0,9020.0,Medium
+onion,Satana,78,643.33,195.0,25,423.33,8466.6,Medium
+onion,Rahuri,111,692.33,277.5,25,389.83,7796.6,Medium
+onion,Shrirampur,112,684.33,280.0,25,379.33,7586.6,Medium
+onion,Rahata,77,594.33,192.5,25,376.83,7536.6,Medium
+onion,Malegaon,104,641.67,260.0,25,356.67,7133.4,Medium
+onion,Manmad,78,557.0,195.0,25,337.0,6740.0,Medium
+onion,Yeola,74,473.0,185.0,25,263.0,5260.0,Medium
+onion,Nandgaon,103,499.0,257.5,25,216.5,4330.0,Medium

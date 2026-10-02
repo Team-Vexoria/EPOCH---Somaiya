@@ -1,5 +1,8 @@
 """
-crag_app.py - Agentic Corrective RAG (CRAG) with LangGraph, Groq, and ChromaDB ONNX Embeddings.
+crag_app.py - Agentic Corrective RAG (CRAG) for Nashik Mandi Crop Advisory.
+
+Powered by LangGraph, Groq, and ChromaDB ONNX Embeddings.
+Vector store: ../data/chroma_db  (collection: nashik_mandi_advisory)
 
 Exposes ask_crag(question: str) -> dict with keys:
   - answer: str
@@ -13,6 +16,7 @@ Can be imported directly into FastAPI or CLI applications.
 import os
 import sys
 import time
+from pathlib import Path
 import logging
 
 if sys.platform == "win32":
@@ -53,10 +57,13 @@ LLM_BASE_URL = os.environ.get("LLM_BASE_URL", "https://api.groq.com/openai/v1")
 LLM_API_KEY = os.environ.get("LLM_API_KEY") or os.environ.get("GROQ_API_KEY", "")
 TAVILY_API_KEY = os.environ.get("TAVILY_API_KEY", "")
 
-SCORE_THRESHOLD = 0.35
+SCORE_THRESHOLD = 0.01  # Low threshold: ONNX MiniLM cosine scores are 0.02–0.39 for domain docs; LLM grader handles filtering
 MAX_WEB_CHARS = 4000
-PERSIST_DIRECTORY = "./rag_db"
-COLLECTION_NAME = "rag_db"
+
+# Resolve path relative to this file so it works regardless of cwd
+_BACKEND_DIR = Path(__file__).resolve().parent
+PERSIST_DIRECTORY = str(_BACKEND_DIR / ".." / "data" / "chroma_db")
+COLLECTION_NAME = "nashik_mandi_advisory"
 
 # ---------------------------------------------------------
 # Local Embeddings (Free ONNX all-MiniLM-L6-v2)
@@ -172,11 +179,18 @@ User question:
 doc_grader = (grade_prompt | structured_llm_grader).with_retry(stop_after_attempt=3)
 
 # 2. QA RAG Chain
-PROMPT_QA = """You are an assistant for question-answering tasks on popular research topics.
-Use the following pieces of retrieved context to answer the question.
-If no context is present or if you don't know the answer, just say that you don't know the answer.
-Do not make up the answer unless it is there in the provided context.
-Give a detailed answer and to the point answer with regard to the question.
+PROMPT_QA = """You are a Nashik-region agricultural market advisory assistant.
+You help farmers and traders make data-driven decisions about when, where, and how to sell their crops (onion, tomato, soyabean) across APMC mandis within ~200 km of Nashik, Maharashtra.
+
+Use the following retrieved context — which contains historical monthly mandi prices, transport cost estimates, seasonal trends, and storage/spoilage guidance — to answer the question.
+
+Rules:
+- If the context contains price ranges or confidence levels, always surface them.
+- Always mention the relevant mandi name(s) and time periods.
+- Express prices in ₹/quintal. Express distances in km.
+- If the context is insufficient, say so honestly — never invent prices or recommendations.
+- When advising, factor in transport cost (~₹3/km/quintal) and crop-specific spoilage risk.
+- Keep the tone practical and farmer-friendly.
 
 Question:
 {question}
@@ -431,7 +445,7 @@ def ask_crag(question: str) -> dict:
     }
 
 if __name__ == "__main__":
-    test_q = sys.argv[1] if len(sys.argv) > 1 else "what is chain of thought prompting?"
+    test_q = sys.argv[1] if len(sys.argv) > 1 else "Where should I sell 20 quintals of onion from Nashik this month?"
     print(f"Testing ask_crag with: {test_q}")
     out = ask_crag(test_q)
     print("\nResult:")
