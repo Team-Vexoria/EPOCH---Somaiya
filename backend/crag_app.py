@@ -16,6 +16,7 @@ Can be imported directly into FastAPI or CLI applications.
 import os
 import sys
 import time
+import requests
 from pathlib import Path
 import logging
 
@@ -161,11 +162,12 @@ class GradeDocuments(BaseModel):
 # Fast structured grader powered by lightweight model
 structured_llm_grader = llm_fast.with_structured_output(GradeDocuments)
 
-SYS_PROMPT_GRADER = """You are an expert grader assessing relevance of a retrieved document to a user question.
-Follow these instructions for grading:
-  - If the document contains keyword(s) or semantic meaning related to the question, grade it as relevant.
-  - The overall grade should focus more on the semantic meaning rather than just individual words.
-  - Your grade should be either 'yes' or 'no' to indicate whether the document is relevant to the question or not."""
+SYS_PROMPT_GRADER = """You are an expert agricultural grader assessing whether a retrieved APMC mandi document satisfies a user's question.
+
+CRITICAL RULES:
+1. If the user is specifically asking for TODAY'S, CURRENT, LIVE, LATEST spot price (e.g. 'today', 'live', 'current', 'latest', 'spot', 'आजचा', 'आताचा', 'आज का', 'ताजा भाव', '2025', '2026'), and the retrieved document only contains historical archive data (e.g. from 2016 or monthly averages), you MUST grade it as 'no' because it cannot provide today's live rate without web search.
+2. If the user is asking for general seasonal trends, storage/holding advice, transport comparisons, or general crop price patterns, and the document is about that crop and mandi, grade it as 'yes'.
+3. Your grade MUST be either 'yes' or 'no'."""
 
 grade_prompt = ChatPromptTemplate.from_messages([
     ("system", SYS_PROMPT_GRADER),
@@ -182,15 +184,14 @@ doc_grader = (grade_prompt | structured_llm_grader).with_retry(stop_after_attemp
 PROMPT_QA = """You are a Nashik-region agricultural market advisory assistant.
 You help farmers and traders make data-driven decisions about when, where, and how to sell their crops (onion, tomato, soyabean) across APMC mandis within ~200 km of Nashik, Maharashtra.
 
-Use the following retrieved context — which contains historical monthly mandi prices, transport cost estimates, seasonal trends, and storage/spoilage guidance — to answer the question.
+Use the retrieved context — which may contain BOTH live web search spot rates (from Agmarknet / APMC market feeds) AND historical monthly baseline trends/storage rules — to answer the question.
 
 Rules:
-- If the context contains price ranges or confidence levels, always surface them.
-- Always mention the relevant mandi name(s) and time periods.
-- Express prices in ₹/quintal. Express distances in km.
-- If the context is insufficient, say so honestly — never invent prices or recommendations.
-- When advising, factor in transport cost (~₹3/km/quintal) and crop-specific spoilage risk.
-- Keep the tone practical and farmer-friendly.
+1. LIVE SPOT RATES: If the context contains live web search results with recent/today's prices, lead with that spot rate and clearly label it as '🔴 आजचा थेट बाजारभाव (Live APMC / Agmarknet Spot Rate)'.
+2. HISTORICAL INSIGHTS: Merge the live rate with our domain knowledge: transport freight cost (~₹3/km/quintal), crop perishability, and holding/storage advice (e.g. ventilated chawl for onions vs immediate 24-48h sale for tomatoes).
+3. TRANSPARENCY: Always state the source (e.g. Agmarknet web feed vs historical APMC baseline). Never fabricate spot rates.
+4. LANGUAGE: If the query is in Marathi or Hindi, reply in that language with clear bullet points. If in English, reply in English.
+5. Keep the tone practical, farmer-friendly, and actionable.
 
 Question:
 {question}
@@ -221,10 +222,13 @@ def _qa_rag_call(inputs: dict) -> str:
 
 qa_rag_chain = RunnableLambda(_qa_rag_call)
 
-# 3. Query Rephraser
-SYS_PROMPT_REWRITE = """Act as a question re-writer and perform the following task:
- - Convert the following input question to a better version that is optimized for web search.
- - Before re-writing, look at the input question and try to reason about the underlying semantic intent / meaning and then re-write it."""
+# 3. Query Rephraser for Live Agricultural Search
+SYS_PROMPT_REWRITE = """Act as an agricultural query optimizer for web search.
+Your task:
+- Convert the user's question into a highly effective search query targeting live Indian agricultural market feeds (Agmarknet, MSAMB, APMC spot rates, commodity market news).
+- Extract the crop (e.g. Onion, Tomato, Soybean), the specific mandi/market (e.g. Pimpalgaon, Lasalgaon, Nashik APMC), and location (Maharashtra).
+- Append search keywords such as 'mandi price today Agmarknet Maharashtra' or 'APMC market rate today'.
+- Output ONLY the optimized search query string, nothing else."""
 
 re_write_prompt = ChatPromptTemplate.from_messages([
     ("system", SYS_PROMPT_REWRITE),
@@ -245,36 +249,46 @@ def _rewriter_call(inputs: dict) -> str:
 
 question_rewriter = RunnableLambda(_rewriter_call)
 
-# 4. Web Search Tool (Tavily with DuckDuckGo fallback)
-try:
-    from langchain_tavily import TavilySearch
-    tavily_search = TavilySearch(max_results=6, search_depth="advanced", include_answer=False, include_raw_content=True)
-except Exception:
-    tavily_search = None
-
+# 4. Web Search Tool (Direct Tavily HTTP API with DuckDuckGo fallback)
 @tool
 def search_web(query: str) -> list:
-    """Search the web for a query. Useful for general information or general news."""
+    """Search the web for live agricultural market data, Agmarknet rates, and news."""
     tavily_key = os.environ.get("TAVILY_API_KEY", "")
-    if tavily_search and tavily_key and tavily_key != "your_tavily_api_key_here":
+    if tavily_key and tavily_key != "your_tavily_api_key_here":
         try:
-            results = tavily_search.invoke({"query": query})
-            docs = [r["raw_content"] for r in results.get("results", [])]
-            docs = [d for d in docs if d is not None]
-            docs = [d[:MAX_WEB_CHARS] for d in docs[:6]]
-            if docs:
-                return docs
+            resp = requests.post(
+                "https://api.tavily.com/search",
+                json={
+                    "api_key": tavily_key,
+                    "query": query,
+                    "max_results": 5,
+                    "search_depth": "advanced",
+                    "include_answer": False
+                },
+                timeout=10
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                results = data.get("results", [])
+                snippets = []
+                for r in results:
+                    title = r.get("title", "")
+                    content = r.get("content", "")
+                    url = r.get("url", "")
+                    if content:
+                        snippets.append(f"[Live Agmarknet / APMC Source: {title} | {url}]\n{content[:MAX_WEB_CHARS]}")
+                if snippets:
+                    print(f"---TAVILY SEARCH RETURNED {len(snippets)} LIVE RESULTS---")
+                    return snippets
         except Exception as e:
-            print(f"Tavily search failed ({e}). Falling back to DuckDuckGo...")
+            print(f"Tavily search API failed ({e}). Falling back to DuckDuckGo...")
 
-    # Fallback to DuckDuckGo (no key required)
+    # Fallback to DuckDuckGo
     try:
-        from ddgs import DDGS
-        ddgs = DDGS()
-        results = list(ddgs.text(query, max_results=6))
-        docs = [r.get("body", "") for r in results if r.get("body")]
-        docs = [d[:MAX_WEB_CHARS] for d in docs[:6]]
-        return docs
+        from duckduckgo_search import DDGS
+        with DDGS() as ddgs:
+            results = list(ddgs.text(query, max_results=5))
+            return [r.get("body", "") for r in results if r.get("body")]
     except Exception as e:
         print(f"DuckDuckGo search error ({e}). Returning empty results.")
         return []
@@ -361,7 +375,7 @@ def web_search(state: GraphState) -> dict:
     question = state["question"]
     documents = list(state.get("documents", []))
     docs = search_web.invoke(question)
-    web_results = [Document(page_content=d, metadata={"source": "web"}) for d in docs]
+    web_results = [Document(page_content=d, metadata={"source": "Live Agmarknet Web Search"}) for d in docs]
     documents.extend(web_results)
     elapsed = time.time() - t_start
     print(f"---NODE TIME (web_search): {elapsed:.2f}s---")

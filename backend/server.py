@@ -134,7 +134,7 @@ def execute_crag_pipeline(question: str) -> Dict[str, Any]:
 
         t0 = time.time()
         web_raw = search_web.invoke(better_q)
-        web_docs = [Document(page_content=d, metadata={"source": "web"}) for d in web_raw]
+        web_docs = [Document(page_content=d, metadata={"source": "Live Agmarknet Web Search"}) for d in web_raw]
         context_docs.extend(web_docs)
         t_ws = time.time() - t0
         steps.append({
