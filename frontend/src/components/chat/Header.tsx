@@ -20,6 +20,7 @@ interface HeaderProps {
   onOpenAlerts?: () => void;
   onOpenCalculator?: () => void;
   alertsCount?: number;
+  hasHitAlert?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -28,6 +29,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenAlerts,
   onOpenCalculator,
   alertsCount = 0,
+  hasHitAlert = false,
 }) => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
@@ -98,11 +100,18 @@ export const Header: React.FC<HeaderProps> = ({
             aria-label="Price Alerts"
             className="relative p-1.5 sm:px-2.5 sm:py-1 bg-neutral-surface text-neutral-ink border-2 border-neutral-ink font-bold text-sm hover:bg-neutral-bg shadow-hard cursor-pointer flex items-center gap-1.5 transition-transform active:translate-x-0.5 active:translate-y-0.5"
           >
-            <Bell className="w-4 h-4 text-hold" />
+            <Bell className={`w-4 h-4 ${hasHitAlert ? 'text-sell' : 'text-hold'}`} />
             <span className="hidden sm:inline">Alerts</span>
             {alertsCount > 0 && (
-              <span className="w-5 h-5 rounded-full bg-sell text-sell-fg font-black text-xs flex items-center justify-center border border-neutral-ink shrink-0">
+              <span
+                className={`min-w-[20px] h-5 px-1 rounded-full font-black text-xs flex items-center justify-center border border-neutral-ink shrink-0 ${
+                  hasHitAlert
+                    ? 'bg-sell text-sell-fg animate-pulse'
+                    : 'bg-neutral-ink text-neutral-surface'
+                }`}
+              >
                 {alertsCount}
+                {hasHitAlert ? ' 🔥' : ''}
               </span>
             )}
           </button>

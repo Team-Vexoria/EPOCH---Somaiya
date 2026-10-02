@@ -21,6 +21,9 @@ export interface MandiNetComparison {
   netPerQuintal: number;
   totalNet: number;
   isBest: boolean;
+  transportExplanation?: string;
+  priceExplanation?: string;
+  spoilageExplanation?: string;
 }
 
 export interface Recommendation {
@@ -84,6 +87,9 @@ export interface HeatmapItem {
   arrivalsTodayQuintals: number;
   confidence: ConfidenceLevel;
   sparkline: number[];
+  transportExplanation?: string;
+  priceExplanation?: string;
+  spoilageExplanation?: string;
 }
 
 export interface HeatmapResponse {

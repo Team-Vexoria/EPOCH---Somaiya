@@ -467,35 +467,61 @@ export const MapPage: React.FC = () => {
                 </div>
 
                 {/* Financial Ledger (Net of Freight & Spoilage) */}
-                <div className="border border-neutral-border bg-neutral-surface p-3 space-y-2 mb-4">
-                  <div className="text-sm font-bold text-neutral-ink border-b border-neutral-border pb-1">
-                    {currentLang === 'mr' ? 'खर्च वजावट तपशील' : 'Freight & Spoilage Breakdown'}
+                <div className="border-2 border-neutral-ink bg-neutral-surface p-3.5 space-y-2.5 mb-4 shadow-hard">
+                  <div className="text-sm font-black text-neutral-ink border-b-2 border-neutral-ink pb-1.5 flex items-center justify-between">
+                    <span>{currentLang === 'mr' ? 'खर्च वजावट तपशील' : 'Freight & Spoilage Breakdown'}</span>
+                    <span className="text-sm font-semibold text-neutral-muted">Per Quintal Basis</span>
                   </div>
 
-                  <div className="flex justify-between text-sm">
-                    <span className="text-neutral-muted flex items-center gap-1">
-                      <TrendingUp className="w-4 h-4 text-sell" /> {t('map.forecastMetric')}
-                    </span>
-                    <span className="font-bold text-neutral-ink">+{formatRupee(selectedMandi.forecastPrice)}</span>
+                  {/* 1. APMC Forecast Price */}
+                  <div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-neutral-muted flex items-center gap-1 font-bold">
+                        <TrendingUp className="w-4 h-4 text-sell" /> {t('map.forecastMetric')}
+                      </span>
+                      <span className="font-extrabold text-neutral-ink text-base">+{formatRupee(selectedMandi.forecastPrice)}</span>
+                    </div>
+                    {selectedMandi.priceExplanation && (
+                      <div className="text-sm text-neutral-muted pl-5 font-semibold mt-0.5">
+                        ↳ {selectedMandi.priceExplanation}
+                      </div>
+                    )}
                   </div>
 
-                  <div className="flex justify-between text-sm">
-                    <span className="text-neutral-muted flex items-center gap-1">
-                      <Truck className="w-4 h-4 text-secondary" /> {t('map.transportDeduction')} ({selectedMandi.distanceKm} km)
-                    </span>
-                    <span className="font-bold text-risk">-{formatRupee(selectedMandi.transportCost)}</span>
+                  {/* 2. Transport Freight */}
+                  <div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-neutral-muted flex items-center gap-1 font-bold">
+                        <Truck className="w-4 h-4 text-secondary" /> {t('map.transportDeduction')} ({selectedMandi.distanceKm} km)
+                      </span>
+                      <span className="font-extrabold text-risk text-base">-{formatRupee(selectedMandi.transportCost)}</span>
+                    </div>
+                    {selectedMandi.transportExplanation && (
+                      <div className="text-sm text-neutral-muted pl-5 font-semibold mt-0.5">
+                        ↳ {selectedMandi.transportExplanation}
+                      </div>
+                    )}
                   </div>
 
-                  <div className="flex justify-between text-sm">
-                    <span className="text-neutral-muted flex items-center gap-1">
-                      <AlertTriangle className="w-4 h-4 text-hold" /> {t('map.spoilageDeduction')}
-                    </span>
-                    <span className="font-bold text-risk">-{formatRupee(selectedMandi.spoilageLoss)}</span>
+                  {/* 3. Spoilage Loss */}
+                  <div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-neutral-muted flex items-center gap-1 font-bold">
+                        <AlertTriangle className="w-4 h-4 text-hold" /> {t('map.spoilageDeduction')}
+                      </span>
+                      <span className="font-extrabold text-risk text-base">-{formatRupee(selectedMandi.spoilageLoss)}</span>
+                    </div>
+                    {selectedMandi.spoilageExplanation && (
+                      <div className="text-sm text-neutral-muted pl-5 font-semibold mt-0.5">
+                        ↳ {selectedMandi.spoilageExplanation}
+                      </div>
+                    )}
                   </div>
 
-                  <div className="flex justify-between text-base font-extrabold border-t-2 border-neutral-ink pt-1 text-sell">
+                  {/* 4. Final Net Realized */}
+                  <div className="flex justify-between text-base font-black border-t-2 border-neutral-ink pt-2 text-sell">
                     <span>{t('map.netInHand')}</span>
-                    <span>={formatRupee(selectedMandi.netReturn)}/qtl</span>
+                    <span className="text-lg">={formatRupee(selectedMandi.netReturn)}/qtl</span>
                   </div>
                 </div>
 

@@ -12,6 +12,7 @@ interface AppState {
   // Preferences / Onboarding
   language: Language;
   crops: CropId[];
+  harvestDaysAgo: Record<CropId, number>;
   onboardingComplete: boolean;
 
   // Conversations
@@ -23,6 +24,8 @@ interface AppState {
   logout: () => void;
   setLanguage: (lang: Language) => void;
   setCrops: (crops: CropId[]) => void;
+  setHarvestDaysAgo: (cropId: CropId, daysAgo: number) => void;
+  setAllHarvestDaysAgo: (record: Record<CropId, number>) => void;
   completeOnboarding: () => void;
 
   createConversation: (initialTitle?: string) => string;
@@ -51,6 +54,11 @@ export const useAppStore = create<AppState>()(
 
       language: 'mr',
       crops: [],
+      harvestDaysAgo: {
+        onion: 0,
+        tomato: 0,
+        soybean: 0,
+      },
       onboardingComplete: false,
 
       conversations: [],
@@ -66,6 +74,11 @@ export const useAppStore = create<AppState>()(
           isLoggedIn: false,
           onboardingComplete: false,
           crops: [],
+          harvestDaysAgo: {
+            onion: 0,
+            tomato: 0,
+            soybean: 0,
+          },
           activeConversationId: null,
         });
       },
@@ -77,6 +90,19 @@ export const useAppStore = create<AppState>()(
 
       setCrops: (crops: CropId[]) => {
         set({ crops });
+      },
+
+      setHarvestDaysAgo: (cropId: CropId, daysAgo: number) => {
+        set((state) => ({
+          harvestDaysAgo: {
+            ...state.harvestDaysAgo,
+            [cropId]: Math.max(0, daysAgo),
+          },
+        }));
+      },
+
+      setAllHarvestDaysAgo: (record: Record<CropId, number>) => {
+        set({ harvestDaysAgo: record });
       },
 
       completeOnboarding: () => {

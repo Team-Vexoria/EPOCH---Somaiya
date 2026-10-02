@@ -23,34 +23,236 @@ export function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lo
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return Math.round(R * c * 1.25); // 1.25 factor for actual road distance
+  return Math.round(R * c * 1.28); // 1.28 factor for rural Nashik road winding tortuosity
 }
 
-// Freight cost calculation (pickup / tempo rate per km per quintal)
-export function calculateTransportCost(distanceKm: number, isBulk = false): number {
+export interface TransportCostDetails {
+  distanceKm: number;
+  fixedHandlingPerQtl: number;
+  haulageRatePerKmQtl: number;
+  haulageSubtotal: number;
+  terrainSurcharge: number;
+  totalPerQtl: number;
+  explanation: string;
+}
+
+/**
+ * Logical Freight Cost Calculation:
+ * - Base APMC Hamali, weighing & gate entry cost: ₹15/quintal
+ * - Tiered haulage rate: <25km: ₹1.15/km, 25-60km: ₹0.88/km, >60km: ₹0.78/km
+ * - Western Ghats incline terrain surcharge for Igatpuri/Kalwan: +12%
+ */
+export function calculateDetailedTransportCost(
+  distanceKm: number,
+  mandiId = '',
+  isBulk = false
+): TransportCostDetails {
+  if (distanceKm <= 0) {
+    return {
+      distanceKm: 0,
+      fixedHandlingPerQtl: 0,
+      haulageRatePerKmQtl: 0,
+      haulageSubtotal: 0,
+      terrainSurcharge: 0,
+      totalPerQtl: 0,
+      explanation: '0 km (Local village harvest collection)',
+    };
+  }
+
+  const fixedHandlingPerQtl = isBulk ? 12 : 15;
+
+  let haulageRatePerKmQtl = 0.88;
   if (isBulk) {
-    // 10-wheeler bulk rate (100 qtl load): ₹36/km / 100 qtl + ₹15 handling
-    return Math.round(distanceKm * 0.36 + 15);
+    haulageRatePerKmQtl = 0.35; // 10-ton 10-wheeler bulk economy
+  } else if (distanceKm < 25) {
+    haulageRatePerKmQtl = 1.15; // Local village approach roads
+  } else if (distanceKm <= 60) {
+    haulageRatePerKmQtl = 0.88; // State highway rate
+  } else {
+    haulageRatePerKmQtl = 0.78; // National highway long-distance tier
   }
-  // Individual farmer pickup tempo (20 qtl load): ₹18/km / 20 qtl + ₹25 handling
-  return Math.round(distanceKm * 0.9 + 25);
+
+  const haulageSubtotal = Math.round(distanceKm * haulageRatePerKmQtl);
+
+  // Ghat & hilly terrain surcharge for Igatpuri (Thal Ghat) or Kalwan (Baglan hills)
+  let terrainSurcharge = 0;
+  const isGhat = mandiId === 'igatpuri' || mandiId === 'kalwan';
+  if (isGhat) {
+    terrainSurcharge = Math.round(haulageSubtotal * 0.12);
+  }
+
+  const totalPerQtl = fixedHandlingPerQtl + haulageSubtotal + terrainSurcharge;
+  const explanation = `${distanceKm} km @ ₹${haulageRatePerKmQtl.toFixed(2)}/km + ₹${fixedHandlingPerQtl} Hamali${
+    terrainSurcharge > 0 ? ` + ₹${terrainSurcharge} Ghat Surcharge` : ''
+  }`;
+
+  return {
+    distanceKm,
+    fixedHandlingPerQtl,
+    haulageRatePerKmQtl,
+    haulageSubtotal,
+    terrainSurcharge,
+    totalPerQtl,
+    explanation,
+  };
 }
 
-// Spoilage loss in ₹ per quintal based on holding days
+export function calculateTransportCost(distanceKm: number, isBulk = false, mandiId = ''): number {
+  return calculateDetailedTransportCost(distanceKm, mandiId, isBulk).totalPerQtl;
+}
+
+export interface SpoilageDetails {
+  days: number;
+  lossPct: number;
+  lossPerQtl: number;
+  explanation: string;
+}
+
+/**
+ * Logical Spoilage and Storage Shrinkage Calculation:
+ * - Onion: Aerated chawl natural moisture loss of 0.20%/day (1.4%/week)
+ * - Tomato: Highly perishable crate decay (3.5%/day early, accelerating to 24% at 1w, 48% at 2w, 72% at 3w)
+ * - Soybean: Dry storage in gunny bags (0.01%/week)
+ */
+export function calculateDetailedSpoilageLoss(
+  cropId: string,
+  basePrice: number,
+  days: number
+): SpoilageDetails {
+  if (days <= 0) {
+    return {
+      days: 0,
+      lossPct: 0,
+      lossPerQtl: 0,
+      explanation: '0 days (Same-day harvest dispatch, 0% spoilage)',
+    };
+  }
+
+  if (cropId === 'tomato') {
+    const lossPct = Math.min(days * 0.035 + (days > 3 ? (days - 3) * 0.015 : 0), 0.75);
+    const lossPerQtl = Math.round(basePrice * lossPct);
+    return {
+      days,
+      lossPct: Number((lossPct * 100).toFixed(1)),
+      lossPerQtl,
+      explanation: `${days} days non-refrigerated crate holding (${(lossPct * 100).toFixed(1)}% rot & decay)`,
+    };
+  }
+
+  if (cropId === 'onion') {
+    const lossPct = days * 0.0020;
+    const lossPerQtl = Math.round(basePrice * lossPct);
+    return {
+      days,
+      lossPct: Number((lossPct * 100).toFixed(1)),
+      lossPerQtl,
+      explanation: `${days} days aerated chawl storage (${(lossPct * 100).toFixed(1)}% natural weight shrinkage)`,
+    };
+  }
+
+  const lossPct = (days / 7) * 0.0005;
+  const lossPerQtl = Math.round(basePrice * lossPct);
+  return {
+    days,
+    lossPct: Number((lossPct * 100).toFixed(2)),
+    lossPerQtl,
+    explanation: `${days} days dry gunny bag storage (${(lossPct * 100).toFixed(2)}% loss)`,
+  };
+}
+
 export function calculateSpoilageLoss(crop: string, basePrice: number, days: number): number {
-  if (days <= 0) return 0;
-  if (crop === 'tomato') {
-    // Highly perishable: 5% day 1-2, 10% day 3, 25% day 4
-    const lossPct = Math.min(days * 0.07, 0.45);
-    return Math.round(basePrice * lossPct);
+  return calculateDetailedSpoilageLoss(crop, basePrice, days).lossPerQtl;
+}
+
+export interface MandiPriceDetails {
+  baseBenchmark: number;
+  liquidityPremium: number;
+  specialtyBonus: number;
+  horizonShift: number;
+  arrivalAdjustment: number;
+  forecastPrice: number;
+  explanation: string;
+}
+
+/**
+ * Logical Mandi Pricing Model:
+ * 1. Base Commodity Benchmark (Agmarknet Nashik district average)
+ * 2. Mandi Market Scale & Liquidity Premium (Lasalgaon for Onion, Pimpalgaon for Tomato, Malegaon for Soybean)
+ * 3. Specialty Crop match bonus (+₹40)
+ * 4. Crop biology & time horizon trajectory (Onion appreciates/plateaus, Tomato heavily discounts, Soybean rises)
+ * 5. Daily arrival volume dampening
+ */
+export function calculateLogicalMandiPrice(
+  cropId: string,
+  mandiId: string,
+  horizonDays = 0
+): MandiPriceDetails {
+  const crop = CROPS[cropId] || CROPS.onion;
+  const baseBenchmark = crop.defaultPricePerQuintal;
+
+  const scalePremiums: Record<string, Record<string, number>> = {
+    lasalgaon: { onion: 210, tomato: 40, soybean: 60 },
+    pimpalgaon: { onion: 160, tomato: 220, soybean: 50 },
+    nashik: { onion: 110, tomato: 140, soybean: 40 },
+    yeola: { onion: 120, tomato: 20, soybean: 110 },
+    manmad: { onion: 70, tomato: 10, soybean: 130 },
+    sinnar: { onion: 80, tomato: 50, soybean: 80 },
+    dindori: { onion: 50, tomato: 150, soybean: 30 },
+    niphad: { onion: 130, tomato: 70, soybean: 50 },
+    chandwad: { onion: 90, tomato: 30, soybean: 70 },
+    malegaon: { onion: 60, tomato: 20, soybean: 190 },
+    satana: { onion: 95, tomato: 40, soybean: 80 },
+    nandgaon: { onion: 40, tomato: 10, soybean: 70 },
+    kalwan: { onion: 65, tomato: 50, soybean: 40 },
+    igatpuri: { onion: 30, tomato: 30, soybean: 20 },
+  };
+
+  const mandiScale = scalePremiums[mandiId] || { onion: 50, tomato: 30, soybean: 50 };
+  const liquidityPremium = mandiScale[cropId] || 50;
+
+  const mandiConfig = MANDIS.find((m) => m.id === mandiId);
+  let specialtyBonus = 0;
+  if (mandiConfig && (mandiConfig.specialtyCrop === cropId || mandiConfig.specialtyCrop === 'all')) {
+    specialtyBonus = 40;
   }
-  if (crop === 'onion') {
-    // Chawl holding: 1.5% loss per week
-    const lossPct = (days / 7) * 0.015;
-    return Math.round(basePrice * lossPct);
+
+  let horizonShift = 0;
+  if (cropId === 'onion') {
+    if (horizonDays <= 7) horizonShift = horizonDays * 16;
+    else if (horizonDays <= 14) horizonShift = 7 * 16 + (horizonDays - 7) * 12;
+    else horizonShift = 7 * 16 + 7 * 12 + (horizonDays - 14) * 4;
+  } else if (cropId === 'tomato') {
+    horizonShift = -horizonDays * 22;
+  } else if (cropId === 'soybean') {
+    horizonShift = horizonDays * 10;
   }
-  // Soybean: almost 0 loss
-  return Math.round(basePrice * 0.001 * days);
+
+  const arrivals = mandiConfig?.baseArrivalsQuintalPerDay || 15000;
+  let arrivalAdjustment = 0;
+  if (arrivals >= 35000) {
+    arrivalAdjustment = -15;
+  } else if (arrivals <= 10000) {
+    arrivalAdjustment = -25;
+  }
+
+  const forecastPrice = Math.max(
+    500,
+    baseBenchmark + liquidityPremium + specialtyBonus + horizonShift + arrivalAdjustment
+  );
+
+  const explanation = `₹${baseBenchmark} Base + ₹${liquidityPremium} Liquidity${
+    specialtyBonus > 0 ? ` + ₹${specialtyBonus} Specialty` : ''
+  }${horizonShift >= 0 ? ` + ₹${horizonShift}` : ` - ₹${Math.abs(horizonShift)}`} Horizon Shift`;
+
+  return {
+    baseBenchmark,
+    liquidityPremium,
+    specialtyBonus,
+    horizonShift,
+    arrivalAdjustment,
+    forecastPrice,
+    explanation,
+  };
 }
 
 export function generateMockRecommendation(
@@ -90,20 +292,17 @@ export function generateMockRecommendation(
     reasonHi = 'मालेगांव में तेल मिलों की मांग बढ़ने वाली है। सूखे गोदाम में सुरक्षित रखें.';
   }
 
-  // Calculate comparisons for all mandis
+  // Calculate comparisons for all mandis using logical pricing and transport models
   const comparisons: MandiNetComparison[] = MANDIS.map((m) => {
     const dist = calculateDistanceKm(village.lat, village.lng, m.lat, m.lng);
-    const transport = calculateTransportCost(dist);
-    const spoilage = calculateSpoilageLoss(cropId, basePrice, decision === 'HOLD' ? holdDays : 0);
+    const transportDetails = calculateDetailedTransportCost(dist, m.id, false);
+    const days = decision === 'HOLD' ? holdDays : 0;
+    const priceDetails = calculateLogicalMandiPrice(cropId, m.id, days);
+    const spoilageDetails = calculateDetailedSpoilageLoss(cropId, priceDetails.forecastPrice, days);
 
-    // Mandi specialty price variation
-    let mandiBonus = 0;
-    if (cropId === 'onion' && (m.id === 'lasalgaon' || m.id === 'pimpalgaon')) mandiBonus = 220;
-    if (cropId === 'tomato' && (m.id === 'pimpalgaon' || m.id === 'dindori')) mandiBonus = 180;
-    if (cropId === 'soybean' && (m.id === 'malegaon' || m.id === 'manmad')) mandiBonus = 210;
-
-    const futureBonus = decision === 'HOLD' ? expectedGain : 0;
-    const forecast = basePrice + mandiBonus + futureBonus - Math.round(dist * 0.3);
+    const forecast = priceDetails.forecastPrice;
+    const transport = transportDetails.totalPerQtl;
+    const spoilage = spoilageDetails.lossPerQtl;
     const netPerQtl = forecast - transport - spoilage;
 
     return {
@@ -118,6 +317,9 @@ export function generateMockRecommendation(
       netPerQuintal: netPerQtl,
       totalNet: netPerQtl * quantity,
       isBest: false,
+      transportExplanation: transportDetails.explanation,
+      priceExplanation: priceDetails.explanation,
+      spoilageExplanation: spoilageDetails.explanation,
     };
   });
 
@@ -226,28 +428,25 @@ export function generateMockHeatmap(cropId = 'onion', horizonDays = 0, villageId
 
   const items: HeatmapItem[] = MANDIS.map((m) => {
     const dist = calculateDistanceKm(village.lat, village.lng, m.lat, m.lng);
-    const transport = calculateTransportCost(dist);
-    const spoilage = calculateSpoilageLoss(cropId, basePrice, horizonDays);
+    const transportDetails = calculateDetailedTransportCost(dist, m.id, false);
+    const priceDetails = calculateLogicalMandiPrice(cropId, m.id, horizonDays);
+    const spoilageDetails = calculateDetailedSpoilageLoss(cropId, priceDetails.forecastPrice, horizonDays);
 
-    let mandiBonus = 0;
-    if (cropId === 'onion' && m.id === 'lasalgaon') mandiBonus = 240;
-    if (cropId === 'onion' && m.id === 'pimpalgaon') mandiBonus = 200;
-    if (cropId === 'tomato' && m.id === 'pimpalgaon') mandiBonus = 210;
-    if (cropId === 'soybean' && m.id === 'malegaon') mandiBonus = 190;
-
-    const horizonTrend = horizonDays * 16;
-    const forecast = basePrice + mandiBonus + horizonTrend;
+    const forecast = priceDetails.forecastPrice;
+    const transport = transportDetails.totalPerQtl;
+    const spoilage = spoilageDetails.lossPerQtl;
     const netReturn = forecast - transport - spoilage;
 
-    // 7-day sparkline
+    // 7-day sparkline reflecting real trend
+    const dailyStep = cropId === 'tomato' ? -22 : cropId === 'onion' ? 16 : 10;
     const sparkline = [
-      forecast - 80,
-      forecast - 40,
-      forecast - 20,
+      forecast - dailyStep * 3,
+      forecast - dailyStep * 2,
+      forecast - dailyStep,
       forecast,
-      forecast + 25,
-      forecast + 50,
-      forecast + 75,
+      forecast + dailyStep,
+      forecast + dailyStep * 2,
+      forecast + dailyStep * 3,
     ];
 
     return {
@@ -265,6 +464,9 @@ export function generateMockHeatmap(cropId = 'onion', horizonDays = 0, villageId
       arrivalsTodayQuintals: m.baseArrivalsQuintalPerDay,
       confidence: horizonDays > 7 ? 'LOW' : horizonDays > 3 ? 'MEDIUM' : 'HIGH',
       sparkline,
+      transportExplanation: transportDetails.explanation,
+      priceExplanation: priceDetails.explanation,
+      spoilageExplanation: spoilageDetails.explanation,
     };
   });
 

@@ -13,6 +13,7 @@ import {
   MapPin,
   Sparkles,
   MessageCircle,
+  Clock,
 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import { fetchNashikWeather, type WeatherAdvisory } from '../../services/weather';
@@ -88,7 +89,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
 }) => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const { crops } = useAppStore();
+  const { crops, harvestDaysAgo } = useAppStore();
   const currentLang = i18n.language || 'mr';
 
   const [weather, setWeather] = useState<WeatherAdvisory | null>(null);
@@ -209,14 +210,19 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
 
       {/* Today's Mandi Prices Strip */}
       <div className="w-full text-left">
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
           <span className="text-sm font-black text-neutral-ink uppercase tracking-wider flex items-center gap-1.5">
             <TrendingUp className="w-4 h-4 text-primary" />
             <span>Today's APMC Modal Prices (Nashik)</span>
           </span>
-          <span className="text-sm font-bold text-neutral-muted">
-            Live Auctions
-          </span>
+          <button
+            type="button"
+            onClick={() => navigate('/crops')}
+            className="text-sm font-bold text-primary hover:underline flex items-center gap-1 cursor-pointer"
+          >
+            <Clock className="w-3.5 h-3.5" />
+            <span>{t('crops.updateHarvestDate')}</span>
+          </button>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
@@ -225,6 +231,11 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
             const cropCfg = CROPS[cropId];
             const isFarmerCrop = crops.includes(cropId);
             const isUp = item.change >= 0;
+
+            const daysAgo = harvestDaysAgo?.[cropId] ?? 0;
+            const remainingDays = Math.max(0, cropCfg.shelfLifeDays - daysAgo);
+            const isUrgent = remainingDays <= 1;
+            const isWarning = remainingDays <= 3 && cropCfg.shelfLifeDays > 4;
 
             const mandiName =
               currentLang === 'mr'
@@ -306,9 +317,19 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
                   </svg>
                 </div>
 
-                <div className="text-sm font-semibold text-neutral-muted flex items-center justify-between border-t border-neutral-border pt-1.5">
-                  <span className="truncate">{mandiName}</span>
-                  <ArrowUpRight className="w-4 h-4 text-neutral-muted group-hover:text-primary shrink-0" />
+                <div className="text-sm font-semibold flex items-center justify-between border-t border-neutral-border pt-1.5">
+                  <span className="truncate text-neutral-muted">{mandiName}</span>
+                  <span
+                    className={`font-black text-sm px-1.5 py-0.5 border ${
+                      remainingDays === 0
+                        ? 'bg-risk-bg text-risk border-risk'
+                        : isUrgent || isWarning
+                        ? 'bg-hold-bg text-hold border-hold'
+                        : 'bg-sell-bg text-sell border-sell'
+                    }`}
+                  >
+                    {remainingDays}d left
+                  </span>
                 </div>
               </button>
             );

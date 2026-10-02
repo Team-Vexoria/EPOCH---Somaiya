@@ -39,6 +39,7 @@ export const ChatPage: React.FC = () => {
   // Price alert modal state
   const [isAlertModalOpen, setIsAlertModalOpen] = useState(false);
   const [alertsCount, setAlertsCount] = useState(0);
+  const [hasHitAlert, setHasHitAlert] = useState(false);
 
   // Net return calculator modal state
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
@@ -220,6 +221,7 @@ export const ChatPage: React.FC = () => {
           onOpenAlerts={() => setIsAlertModalOpen(true)}
           onOpenCalculator={() => handleOpenCalculator()}
           alertsCount={alertsCount}
+          hasHitAlert={hasHitAlert}
         />
 
         {/* Message Stream Area */}
@@ -285,7 +287,10 @@ export const ChatPage: React.FC = () => {
       <PriceAlertModal
         isOpen={isAlertModalOpen}
         onClose={() => setIsAlertModalOpen(false)}
-        onAlertsChange={setAlertsCount}
+        onAlertsChange={(count, hasHit) => {
+          setAlertsCount(count);
+          setHasHitAlert(hasHit);
+        }}
       />
 
       {/* Net Return Calculator Modal */}

@@ -11,6 +11,8 @@ export interface Crop {
   shelfLifeDays: number;
 }
 
+export type HarvestDaysRecord = Record<CropId, number>;
+
 export interface Mandi {
   id: string;
   name: string;
@@ -79,5 +81,6 @@ export interface AuthState {
 export interface UserPreferences {
   language: Language;
   crops: CropId[];
+  harvestDaysAgo?: HarvestDaysRecord;
   onboardingComplete: boolean;
 }

@@ -11,6 +11,7 @@ import {
   X,
   CheckCircle2,
   Info,
+  Clock,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -23,6 +24,8 @@ import {
   ReferenceDot,
 } from 'recharts';
 import { formatRupee } from '../../i18n';
+import { useAppStore } from '../../store/useAppStore';
+import { CROPS } from '../../config/crops';
 import type { CropId } from '../../types';
 
 interface NetReturnCalculatorProps {
@@ -93,10 +96,16 @@ export const NetReturnCalculator: React.FC<NetReturnCalculatorProps> = ({
   const { t, i18n } = useTranslation();
   const currentLang = i18n.language || 'mr';
 
+  const { harvestDaysAgo } = useAppStore();
   const [selectedCrop, setSelectedCrop] = useState<CropId>(initialCrop);
   const [daysHeld, setDaysHeld] = useState<number>(selectedCrop === 'tomato' ? 0 : 10);
   const [quantityQtl, setQuantityQtl] = useState<number>(20);
   const [distanceKm, setDistanceKm] = useState<number>(22);
+
+  const daysSinceHarvest = harvestDaysAgo?.[selectedCrop] ?? 0;
+  const totalCropShelfLife = CROPS[selectedCrop]?.shelfLifeDays ?? 30;
+  const remainingShelfLife = Math.max(0, totalCropShelfLife - daysSinceHarvest);
+  const willExceedRemainingShelfLife = daysHeld > remainingShelfLife;
 
   const crop = CROP_PARAMS[selectedCrop] || CROP_PARAMS.onion;
   const transportRatePerKm = 1.8; // ₹1.8 / quintal / km for pickup/truck freight
@@ -227,6 +236,33 @@ export const NetReturnCalculator: React.FC<NetReturnCalculatorProps> = ({
               );
             })}
           </div>
+
+          {/* Batch Freshness Strip based on user harvest date */}
+          <div className="mt-2.5 flex items-center justify-between text-sm px-3 py-2 bg-neutral-surface border-2 border-neutral-ink shadow-hard">
+            <div className="flex items-center gap-2 font-bold text-neutral-ink">
+              <Clock className="w-4 h-4 text-primary shrink-0" />
+              <span>
+                Batch Harvest:{' '}
+                {daysSinceHarvest === 0
+                  ? 'Today (0d)'
+                  : `${daysSinceHarvest} days ago`}
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-neutral-muted font-medium">Remaining:</span>
+              <span
+                className={`font-black text-sm px-2 py-0.5 border ${
+                  remainingShelfLife <= 1
+                    ? 'bg-risk-bg text-risk border-risk'
+                    : remainingShelfLife <= 3
+                    ? 'bg-hold-bg text-hold border-hold'
+                    : 'bg-sell-bg text-sell border-sell'
+                }`}
+              >
+                {remainingShelfLife} days left
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Sliders Grid: Days Held & Distance */}
@@ -299,6 +335,21 @@ export const NetReturnCalculator: React.FC<NetReturnCalculatorProps> = ({
               </div>
               <p className="text-sm font-semibold text-neutral-ink leading-snug">
                 Tomatoes held past 24-48 hours face 15%-25% crate rot and skin softening. Holding lowers net cash in hand!
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Exceeds Remaining Shelf Life Warning Banner */}
+        {willExceedRemainingShelfLife && (
+          <div className="p-3 bg-risk-bg border-2 border-risk text-risk flex items-start gap-2.5">
+            <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
+            <div>
+              <div className="font-black text-sm uppercase tracking-wide">
+                Exceeds Remaining Shelf-Life
+              </div>
+              <p className="text-sm font-semibold text-neutral-ink leading-snug">
+                Holding for +{daysHeld} days exceeds remaining shelf-life ({remainingShelfLife} days left, {daysSinceHarvest}d already elapsed). Produce will face severe spoilage!
               </p>
             </div>
           </div>
