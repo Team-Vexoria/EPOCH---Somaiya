@@ -5,6 +5,7 @@ node_modules/
 venv/
 __pycache__/
 *.pyc
+rag_db/
 
 # Production build outputs
 dist/

@@ -1,61 +1,106 @@
 /**
- * Lightweight API Client wrapper for backend communication.
- * Connects to FastAPI or Express backend via VITE_API_URL.
+ * API Client & SSE Streamer for Agentic Corrective RAG (CRAG) Backend.
  */
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
-interface RequestOptions extends RequestInit {
-  data?: unknown;
+export interface CragStep {
+  step: string;
+  status: string;
+  details: string;
+  time_taken: number;
 }
 
-export async function apiClient<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
-  const { data, headers, ...customConfig } = options;
+export interface CragResponse {
+  answer: string;
+  sources: string[];
+  path: 'rag' | 'corrective';
+  steps: CragStep[];
+  time_taken: number;
+}
 
-  const config: RequestInit = {
-    method: data ? 'POST' : 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      ...headers,
-    },
-    ...customConfig,
-  };
-
-  if (data) {
-    config.body = JSON.stringify(data);
-  }
-
-  const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
-
-  try {
-    const response = await fetch(url, config);
-    if (!response.ok) {
-      const errorBody = await response.text();
-      throw new Error(`API Error [${response.status}]: ${errorBody || response.statusText}`);
-    }
-    return (await response.json()) as T;
-  } catch (error) {
-    console.error(`Request to ${url} failed:`, error);
-    throw error;
-  }
+export interface StreamCallbacks {
+  onStep?: (data: { step: string; message: string }) => void;
+  onStepDone?: (data: { step: string; details: string; time_taken: number; web_search_needed?: string }) => void;
+  onComplete?: (data: CragResponse) => void;
+  onError?: (error: Error) => void;
 }
 
 /**
  * Health check utility
  */
-export async function checkBackendHealth(): Promise<{ status: string; timestamp?: string }> {
+export async function checkBackendHealth(): Promise<{ status: string; system?: string }> {
   try {
-    return await apiClient<{ status: string; timestamp?: string }>('/api/health');
+    const res = await fetch(`${API_BASE_URL}/`, { method: 'GET' });
+    if (!res.ok) throw new Error('Health check failed');
+    return await res.json();
   } catch {
     return { status: 'offline' };
   }
 }
 
 /**
- * RAG Query helper placeholder ready for when backend agent is plugged in
+ * Synchronous Ask Query
  */
-export async function queryRagAgent(query: string, documentId?: string): Promise<{ answer: string; sources?: string[] }> {
-  return await apiClient<{ answer: string; sources?: string[] }>('/api/rag/query', {
-    data: { query, document_id: documentId },
+export async function askCrag(question: string): Promise<CragResponse> {
+  const response = await fetch(`${API_BASE_URL}/ask`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ question }),
   });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`CRAG Backend Error [${response.status}]: ${errText || response.statusText}`);
+  }
+
+  return (await response.json()) as CragResponse;
+}
+
+/**
+ * Live Server-Sent Events (SSE) Streamer
+ * Connects to GET /ask/stream?question=...
+ * Returns a cancel/cleanup function.
+ */
+export function streamCrag(question: string, callbacks: StreamCallbacks): () => void {
+  const encodedQ = encodeURIComponent(question);
+  const streamUrl = `${API_BASE_URL}/ask/stream?question=${encodedQ}`;
+  const es = new EventSource(streamUrl);
+
+  es.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      if (data.event === 'step') {
+        callbacks.onStep?.({ step: data.step, message: data.message });
+      } else if (data.event === 'step_done') {
+        callbacks.onStepDone?.({
+          step: data.step,
+          details: data.details,
+          time_taken: data.time_taken,
+          web_search_needed: data.web_search_needed,
+        });
+      } else if (data.event === 'complete') {
+        callbacks.onComplete?.({
+          answer: data.answer,
+          sources: data.sources || [],
+          path: data.path || 'rag',
+          steps: data.steps || [],
+          time_taken: data.time_taken || 0,
+        });
+        es.close();
+      }
+    } catch (parseErr) {
+      console.warn('Failed to parse SSE payload:', parseErr);
+    }
+  };
+
+  es.onerror = (err) => {
+    console.error('SSE connection error:', err);
+    es.close();
+    callbacks.onError?.(new Error('SSE connection failed or closed.'));
+  };
+
+  return () => {
+    es.close();
+  };
 }
