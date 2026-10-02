@@ -15,7 +15,7 @@ import {
 } from './mockData';
 
 export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-export const USE_MOCKS = import.meta.env.VITE_USE_MOCKS !== 'false'; // Defaults to true for hackathon demo
+export const USE_MOCKS = import.meta.env.VITE_USE_MOCKS === 'true'; // Defaults to false: connects to live CRAG backend
 
 /**
  * 1. POST /api/chat (or mock)
