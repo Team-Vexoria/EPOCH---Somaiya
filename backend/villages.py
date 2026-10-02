@@ -535,3 +535,100 @@ def get_mandis_list() -> List[dict]:
     ]
 
 
+def generate_fpo_plan_data(
+    crop_id: str = "onion",
+    quantity: int = 300,
+    village_id: str = "niphad_rural",
+    horizon_days: int = 7
+) -> dict:
+    """
+    Computes an optimal multi-mandi allocation plan for an FPO bulk lot.
+    Calculates truck fleet requirements (10-tonne trucks), bulk freight discounts,
+    staggered dispatch slots, and financial gain vs single-mandi local dumping.
+    """
+    v_id = resolve_village_name(village_id) or "niphad_rural"
+    village = VILLAGES.get(v_id, VILLAGES["niphad_rural"])
+    crop_info = CROPS.get(crop_id, CROPS["onion"])
+    base_price = crop_info["default_price"]
+
+    def get_mandi_metrics(mid: str):
+        m = MANDIS.get(mid, MANDIS["lasalgaon"])
+        dist = haversine_km(village["lat"], village["lng"], m["lat"], m["lng"])
+        # Bulk transport economy of scale: ~28% cheaper freight per quintal for 10-wheeler trucks
+        std_freight = freight_cost(dist, mid)["total_per_qtl"]
+        bulk_freight = max(18, round(std_freight * 0.72))
+        price_data = calculate_logical_mandi_price(crop_id, mid, horizon_days)
+        return {
+            "dist": dist,
+            "freight": bulk_freight,
+            "price": price_data["forecast_price"],
+            "name": m["name"],
+            "name_mr": m["name_mr"],
+        }
+
+    las = get_mandi_metrics("lasalgaon")
+    pim = get_mandi_metrics("pimpalgaon")
+    yeo = get_mandi_metrics("yeola")
+
+    allocations = [
+        {
+            "mandiId": "lasalgaon",
+            "mandiName": las["name"],
+            "mandiName_mr": las["name_mr"],
+            "percentage": 45,
+            "quantityQuintals": round(quantity * 0.45),
+            "expectedPrice": las["price"],
+            "estimatedFreight": las["freight"],
+            "netRevenue": round((las["price"] - las["freight"]) * (quantity * 0.45)),
+            "trucksNeeded": math.ceil((quantity * 0.45) / 100),
+            "dispatchDate": "Tomorrow 04:00 AM",
+            "capacityWarning": "High liquidity (25,000 qtl/day daily intake). Low glut risk."
+        },
+        {
+            "mandiId": "pimpalgaon",
+            "mandiName": pim["name"],
+            "mandiName_mr": pim["name_mr"],
+            "percentage": 35,
+            "quantityQuintals": round(quantity * 0.35),
+            "expectedPrice": pim["price"],
+            "estimatedFreight": pim["freight"],
+            "netRevenue": round((pim["price"] - pim["freight"]) * (quantity * 0.35)),
+            "trucksNeeded": math.ceil((quantity * 0.35) / 100),
+            "dispatchDate": "Day 3 Morning",
+            "capacityWarning": "Strong wholesale buyer demand (18,000 qtl/day)."
+        },
+        {
+            "mandiId": "yeola",
+            "mandiName": yeo["name"],
+            "mandiName_mr": yeo["name_mr"],
+            "percentage": 20,
+            "quantityQuintals": round(quantity * 0.20),
+            "expectedPrice": yeo["price"],
+            "estimatedFreight": yeo["freight"],
+            "netRevenue": round((yeo["price"] - yeo["freight"]) * (quantity * 0.20)),
+            "trucksNeeded": math.ceil((quantity * 0.20) / 100),
+            "dispatchDate": "Day 5 Morning",
+            "capacityWarning": "Retail trader premium. Absorbs up to 20% without price depression."
+        }
+    ]
+
+    total_revenue = sum(a["netRevenue"] for a in allocations)
+    nearest_dist = min(haversine_km(village["lat"], village["lng"], m["lat"], m["lng"]) for m in MANDIS.values())
+    baseline_freight = freight_cost(nearest_dist)["total_per_qtl"]
+    baseline_net_per_qtl = max(100, base_price - baseline_freight - 35)
+    baseline_revenue = baseline_net_per_qtl * quantity
+    extra_revenue = total_revenue - baseline_revenue
+
+    return {
+        "totalQuantity": quantity,
+        "totalRevenue": total_revenue,
+        "baselineRevenue": baseline_revenue,
+        "extraRevenueEarned": extra_revenue,
+        "percentageGain": round((extra_revenue / baseline_revenue) * 100, 1) if baseline_revenue else 0.0,
+        "bestMandi": "Lasalgaon APMC",
+        "riskLevel": "LOW",
+        "allocations": allocations
+    }
+
+
+

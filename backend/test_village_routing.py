@@ -115,6 +115,21 @@ def test_fastapi_endpoints():
     assert len(hm["items"]) >= 14
     print(f"  ✅ GET /api/heatmap (Niphad origin) → Top Mandi: {hm['topMandiId']} | Top Net: ₹{hm['items'][0]['netReturn']}/qtl")
 
+    # 5. FPO Plan endpoint
+    fpo_req = {
+        "crop": "onion",
+        "quantity": 500,
+        "village": "niphad_rural",
+        "horizonDays": 7
+    }
+    res = client.post("/api/fpo/plan", json=fpo_req)
+    assert res.status_code == 200
+    plan = res.json()
+    assert plan["totalQuantity"] == 500
+    assert len(plan["allocations"]) == 3
+    assert plan["extraRevenueEarned"] > 0
+    print(f"  ✅ POST /api/fpo/plan → {len(plan['allocations'])} Mandi split, Extra Revenue: +₹{plan['extraRevenueEarned']:,} ({plan['percentageGain']}%)")
+
 if __name__ == "__main__":
     test_village_resolution()
     test_distance_and_freight_contrast()

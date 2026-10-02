@@ -37,7 +37,8 @@ from villages import (
     resolve_village_from_text,
     get_villages_list,
     get_mandis_list,
-    generate_heatmap_data
+    generate_heatmap_data,
+    generate_fpo_plan_data
 )
 
 from whatsapp_bot import router as whatsapp_router
@@ -593,6 +594,28 @@ def get_heatmap_endpoint(crop: str = "onion", horizonDays: int = 0, village: str
     Calculates Haversine distance, tiered road freight, modal forecast price, and spoilage decay.
     """
     return generate_heatmap_data(crop_id=crop, horizon_days=horizonDays, village_id=village)
+
+
+class FpoPlanRequestModel(BaseModel):
+    crop: str = Field("onion", description="Target crop (onion, tomato, soybean)")
+    quantity: int = Field(300, description="Total bulk lot in quintals")
+    village: str = Field("niphad_rural", description="FPO aggregation cluster village ID")
+    horizonDays: int = Field(7, description="Planning dispatch horizon in days")
+
+
+@app.post("/api/fpo/plan")
+def post_fpo_plan_endpoint(req: FpoPlanRequestModel):
+    """
+    Returns optimal multi-mandi allocation breakdown for bulk FPO produce,
+    including truck capacities, bulk freight discounts, and dispatch timelines.
+    """
+    return generate_fpo_plan_data(
+        crop_id=req.crop,
+        quantity=req.quantity,
+        village_id=req.village,
+        horizon_days=req.horizonDays
+    )
+
 
 if __name__ == "__main__":
     import uvicorn

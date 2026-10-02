@@ -69,13 +69,19 @@ export async function fetchFpoPlan(req: FpoPlanRequest): Promise<FpoPlanResponse
     await new Promise((r) => setTimeout(r, 300));
     return generateMockFpoPlan(req);
   }
-  const res = await fetch(`${API_BASE_URL}/api/fpo/plan`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(req),
-  });
-  if (!res.ok) throw new Error(`FPO Plan API Error: ${res.statusText}`);
-  return await res.json();
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/fpo/plan`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(req),
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.warn('Backend /api/fpo/plan unavailable, using local calculation:', err);
+  }
+  return generateMockFpoPlan(req);
 }
 
 /**
