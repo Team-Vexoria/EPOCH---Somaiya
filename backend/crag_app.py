@@ -25,7 +25,7 @@ if sys.platform == "win32":
         sys.stdout.reconfigure(encoding="utf-8")
     except Exception:
         pass
-from typing import List, TypedDict, Optional
+from typing import List, TypedDict, Optional, Any
 from operator import itemgetter
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
@@ -48,6 +48,13 @@ from langchain_openai import ChatOpenAI
 from langchain_chroma import Chroma
 from langgraph.graph import StateGraph, END
 from chromadb.utils import embedding_functions
+
+from villages import (
+    VILLAGES,
+    freight_context_for_prompt,
+    resolve_village_name,
+    resolve_village_from_text,
+)
 
 # ---------------------------------------------------------
 # Configuration and Constants
@@ -189,10 +196,13 @@ CORE DATASET CONTEXT:
 
 Advisory Rules:
 1. LIVE SPOT RATES: If the context contains live Agmarknet / APMC web search results, lead with that spot rate and clearly label it as '🔴 आजचा थेट बाजारभाव (Live APMC / Agmarknet Spot Rate)'.
-2. HISTORICAL BASELINE: Use the 2014-2016 dataset for baseline seasonal trends, transport freight calculations (~₹3/km/quintal), and storage guidance (e.g. 10–21 day ventilated chawl for onions vs immediate 24-48h sale for tomatoes).
-3. TRANSPARENCY: Always cite whether a price is from the 2014-2016 historical dataset or a live Agmarknet feed. Never hallucinate spot rates.
-4. LANGUAGE: If the query is in Marathi or Hindi, reply in that language with clear bullet points. If in English, reply in English.
-5. Keep your response concise, clear, and actionable for farmers.
+2. DYNAMIC VILLAGE FREIGHT & NET RETURN: If the context contains a 'Farmer's Origin / Transport costs calculated FROM the farmer's village' table, USE THOSE EXACT VILLAGE-SPECIFIC DISTANCES AND FREIGHT COSTS (₹/quintal) rather than generic estimates from Nashik city. Explain that:
+   Net Return = Mandi Price - Village Transport Freight - Spoilage Loss.
+   Show the comparison clearly (e.g. from Niphad, Lasalgaon is 15 km away @ ₹29/qtl vs Nashik APMC 40 km away @ ₹50/qtl). Recommend the mandi that yields the highest NET return, not just highest gross rate or closest distance.
+3. DOMAIN STORAGE & SPOILAGE: Factor in crop perishability and storage guidance (e.g. ventilated chawl for onions with ~1.2% weekly shrinkage vs immediate 24-48h sale for tomatoes due to crate decay, dry godown for soybeans).
+4. TRANSPARENCY: Always cite whether a price is from the 2014-2016 historical dataset or a live Agmarknet feed. Never hallucinate spot rates.
+5. LANGUAGE: If the query is in Marathi or Hindi, reply in that language with clear bullet points. If in English, reply in English.
+6. Keep your response concise, practical, and actionable for farmers.
 
 Question:
 {question}
@@ -312,17 +322,19 @@ def search_web(query: str) -> list:
 # ---------------------------------------------------------
 # State Schema & Node Functions
 # ---------------------------------------------------------
-class GraphState(TypedDict):
+class GraphState(TypedDict, total=False):
     """
     question: question
     generation: LLM response generation
     web_search_needed: flag 'Yes'/'No'
     documents: list of context documents
+    village: optional farmer village origin id
     """
     question: str
     generation: str
     web_search_needed: str
-    documents: List[str]
+    documents: List[Any]
+    village: Optional[str]
 
 def retrieve(state: GraphState) -> dict:
     t_start = time.time()
@@ -400,10 +412,22 @@ def web_search(state: GraphState) -> dict:
 def generate_answer(state: GraphState) -> dict:
     t_start = time.time()
     print("---GENERATE ANSWER---")
-    generation = qa_rag_chain.invoke({"context": state.get("documents", []), "question": state["question"]})
+    context_docs = list(state.get("documents", []))
+    v_id = state.get("village") or resolve_village_from_text(state["question"])
+    if v_id and v_id in VILLAGES:
+        v_ctx = freight_context_for_prompt(v_id)
+        if v_ctx:
+            v_name = VILLAGES[v_id]["name"]
+            v_doc = Document(
+                page_content=v_ctx,
+                metadata={"source": f"Dynamic Village Freight Matrix ({v_name})"}
+            )
+            context_docs.insert(0, v_doc)
+
+    generation = qa_rag_chain.invoke({"context": context_docs, "question": state["question"]})
     elapsed = time.time() - t_start
     print(f"---NODE TIME (generate_answer): {elapsed:.2f}s---")
-    return {"generation": generation}
+    return {"generation": generation, "documents": context_docs}
 
 def generate_or_search(state: GraphState) -> str:
     print("---ASSESS GRADED DOCUMENTS---")
@@ -435,21 +459,33 @@ compiled_crag_app = agentic_rag.compile()
 # ---------------------------------------------------------
 # Public API
 # ---------------------------------------------------------
-def ask_crag(question: str) -> dict:
+def ask_crag(question: str, village: Optional[str] = None) -> dict:
     """
     Run the Agentic CRAG workflow on a given question.
+    Optionally accepts a village (id or name) to compute village-origin specific freight.
 
     Returns:
         dict: {
             "answer": str,
             "path": "rag" | "corrective",
             "sources": list[str],
-            "rewritten_question": str
+            "rewritten_question": str,
+            "village": Optional[str]
         }
     """
     initial_question = question
+    v_id = ""
+    if village:
+        v_id = resolve_village_name(village) or resolve_village_from_text(village)
+    if not v_id:
+        v_id = resolve_village_from_text(question)
+
     t_pipeline = time.time()
-    res = compiled_crag_app.invoke({"question": question})
+    input_state: dict = {"question": question}
+    if v_id:
+        input_state["village"] = v_id
+
+    res = compiled_crag_app.invoke(input_state)
     total_time = time.time() - t_pipeline
     print(f"---TOTAL PIPELINE TIME: {total_time:.2f}s---")
 
@@ -465,7 +501,9 @@ def ask_crag(question: str) -> dict:
             sources.append(f"{mandi} APMC ({crop.title()})")
         else:
             src = doc.metadata.get("source", "web")
-            if src == "web" or not src:
+            if src.startswith("Dynamic"):
+                sources.append(src)
+            elif src == "web" or not src:
                 sources.append("Agmarknet APMC Records")
             else:
                 page = doc.metadata.get("page")
@@ -477,7 +515,8 @@ def ask_crag(question: str) -> dict:
         "answer": res.get("generation", ""),
         "path": path,
         "sources": sources,
-        "rewritten_question": rewritten_q
+        "rewritten_question": rewritten_q,
+        "village": v_id or None
     }
 
 if __name__ == "__main__":

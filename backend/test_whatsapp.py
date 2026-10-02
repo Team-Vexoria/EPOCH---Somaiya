@@ -14,7 +14,8 @@ from whatsapp_bot import generate_whatsapp_response
 
 def run_tests():
     test_queries = [
-        ("Marathi Onion Query", "माझ्याकडे २० क्विंटल कांदा आहे, लासलगावला भाव काय मिळेल?"),
+        ("Niphad Farmer Onion Query (Dynamic Village Origin)", "मी निफाडचा शेतकरी आहे, २० क्विंटल कांदा कुठे विकू?"),
+        ("Sinnar Farmer Tomato Query (Dynamic Village Origin)", "I am a farmer in Sinnar with 30 quintals tomato, where should I sell?"),
         ("Marathi Tomato Query", "टोमॅटो आता विकू की थांबू?"),
         ("Hindi Soybean Query", "सोयाबीन २५ क्विंटल कहाँ बेचना चाहिए?"),
         ("English Onion Query", "Should I sell my 40 quintal onions today or hold?"),

@@ -29,6 +29,17 @@ from crag_app import (
     GROQ_FAST_MODEL
 )
 
+from villages import (
+    VILLAGES,
+    MANDIS,
+    freight_context_for_prompt,
+    resolve_village_name,
+    resolve_village_from_text,
+    get_villages_list,
+    get_mandis_list,
+    generate_heatmap_data
+)
+
 from whatsapp_bot import router as whatsapp_router
 
 app = FastAPI(
@@ -50,7 +61,8 @@ app.add_middleware(
 app.include_router(whatsapp_router)
 
 class AskRequest(BaseModel):
-    question: str = Field(..., description="The user query or research question", example="What is self-attention?")
+    question: str = Field(..., description="The user query or research question", example="Where should I sell onion?")
+    village: Optional[str] = Field(None, description="Farmer village origin ID or name (e.g. 'niphad_rural', 'Niphad')")
 
 class StepInfo(BaseModel):
     step: str
@@ -64,11 +76,33 @@ class AskResponse(BaseModel):
     path: str = Field(..., description="'rag' or 'corrective'")
     steps: List[StepInfo]
     time_taken: float
+    village: Optional[str] = None
 
-def execute_crag_pipeline(question: str) -> Dict[str, Any]:
-    """Execute CRAG pipeline synchronously with detailed per-step metrics."""
+def execute_crag_pipeline(question: str, village: Optional[str] = None) -> Dict[str, Any]:
+    """Execute CRAG pipeline synchronously with detailed per-step metrics and dynamic village freight."""
     t_start = time.time()
     steps = []
+
+    # 0. Village Origin Resolution & Freight Context
+    v_id = resolve_village_name(village) if village else ""
+    if not v_id:
+        v_id = resolve_village_from_text(question)
+
+    village_doc = None
+    if v_id and v_id in VILLAGES:
+        v_info = VILLAGES[v_id]
+        v_ctx = freight_context_for_prompt(v_id)
+        if v_ctx:
+            village_doc = Document(
+                page_content=v_ctx,
+                metadata={"source": f"Dynamic Village Freight Matrix ({v_info['name']})"}
+            )
+            steps.append({
+                "step": "village_origin_routing",
+                "status": "completed",
+                "details": f"Calculated real-time transport freight from village origin: {v_info['name']} (Taluka {v_info['taluka']})",
+                "time_taken": 0.001
+            })
 
     # 1. Retrieve
     t0 = time.time()
@@ -144,6 +178,10 @@ def execute_crag_pipeline(question: str) -> Dict[str, Any]:
             "time_taken": round(t_ws, 3)
         })
 
+    # Prepend village origin freight context into the prompt
+    if village_doc:
+        context_docs.insert(0, village_doc)
+
     # 4. Generate
     t0 = time.time()
     generation = qa_rag_chain.invoke({"context": context_docs, "question": curr_question})
@@ -164,7 +202,9 @@ def execute_crag_pipeline(question: str) -> Dict[str, Any]:
             sources.append(f"{mandi} APMC ({crop.title()})")
         else:
             src = doc.metadata.get("source", "web")
-            if src == "web" or not src:
+            if src.startswith("Dynamic"):
+                sources.append(src)
+            elif src == "web" or not src:
                 sources.append("Agmarknet APMC Records")
             else:
                 page = doc.metadata.get("page")
@@ -179,7 +219,8 @@ def execute_crag_pipeline(question: str) -> Dict[str, Any]:
         "sources": list(dict.fromkeys(sources)),
         "path": path,
         "steps": steps,
-        "time_taken": total_time
+        "time_taken": total_time,
+        "village": v_id or None
     }
 
 @app.get("/")
@@ -194,6 +235,10 @@ def health_check():
         },
         "endpoints": {
             "ask": "POST /ask",
+            "chat": "POST /api/chat",
+            "villages": "GET /api/villages",
+            "mandis": "GET /api/mandis",
+            "heatmap": "GET /api/heatmap",
             "stream_post": "POST /ask/stream",
             "stream_get": "GET /ask/stream?question=..."
         }
@@ -203,12 +248,12 @@ def health_check():
 def ask_endpoint(payload: AskRequest):
     """
     Standard JSON endpoint:
-    Returns answer, sources, path ('rag' | 'corrective'), per-step breakdown, and total time_taken.
+    Returns answer, sources, path ('rag' | 'corrective'), per-step breakdown, total time_taken, and resolved village.
     """
     if not payload.question.strip():
         raise HTTPException(status_code=400, detail="Question cannot be empty.")
     try:
-        result = execute_crag_pipeline(payload.question)
+        result = execute_crag_pipeline(payload.question, village=payload.village)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -223,7 +268,8 @@ class ApiChatRequest(BaseModel):
 @app.post("/api/chat")
 def api_chat_endpoint(payload: ApiChatRequest):
     """
-    Frontend chat endpoint connecting the UI directly to the Agentic CRAG engine.
+    Frontend chat endpoint connecting the UI directly to the Agentic CRAG engine
+    with dynamic village origin routing and net return advisory.
     """
     if not payload.message.strip():
         raise HTTPException(status_code=400, detail="Message cannot be empty.")
@@ -237,10 +283,12 @@ def api_chat_endpoint(payload: ApiChatRequest):
     if extra_context:
         query += " (" + ", ".join(extra_context) + ")"
 
+    v_id = payload.village or resolve_village_from_text(payload.message)
+
     try:
-        result = execute_crag_pipeline(query)
+        result = execute_crag_pipeline(query, village=v_id)
         structured_sources = [
-            {"title": s, "snippet": f"Verified APMC market record: {s}"}
+            {"title": s, "snippet": f"Verified APMC / Freight record: {s}"}
             for s in result["sources"]
         ]
         return {
@@ -248,18 +296,49 @@ def api_chat_endpoint(payload: ApiChatRequest):
             "path": result["path"],
             "sources": structured_sources,
             "steps": result["steps"],
-            "time_taken": result["time_taken"]
+            "time_taken": result["time_taken"],
+            "village": result.get("village")
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-async def sse_event_stream(question: str):
+
+async def sse_event_stream(question: str, village: Optional[str] = None):
     """Generator yielding real-time Server-Sent Events (SSE)."""
     t_start = time.time()
     steps = []
 
     def format_sse(data: dict) -> str:
         return f"data: {json.dumps(data)}\n\n"
+
+    # Step 0: Village Origin Routing (if applicable)
+    v_id = resolve_village_name(village) if village else ""
+    if not v_id:
+        v_id = resolve_village_from_text(question)
+
+    village_doc = None
+    if v_id and v_id in VILLAGES:
+        v_info = VILLAGES[v_id]
+        v_ctx = freight_context_for_prompt(v_id)
+        if v_ctx:
+            village_doc = Document(
+                page_content=v_ctx,
+                metadata={"source": f"Dynamic Village Freight Matrix ({v_info['name']})"}
+            )
+            v_step = {
+                "step": "village_origin_routing",
+                "status": "completed",
+                "details": f"Calculated real-time transport freight from village origin: {v_info['name']} (Taluka {v_info['taluka']})",
+                "time_taken": 0.001
+            }
+            steps.append(v_step)
+            yield format_sse({
+                "event": "step_done",
+                "step": "village_origin",
+                "details": f"Origin: {v_info['name']} ({v_info['taluka']}) - Haversine distance matrix loaded",
+                "time_taken": 0.001
+            })
+            await asyncio.sleep(0.01)
 
     # Step 1: Retrieving
     yield format_sse({
@@ -380,7 +459,7 @@ async def sse_event_stream(question: str):
 
         t0 = time.time()
         web_raw = await asyncio.to_thread(search_web.invoke, better_q)
-        web_docs = [Document(page_content=d, metadata={"source": "web"}) for d in web_raw]
+        web_docs = [Document(page_content=d, metadata={"source": "Live Agmarknet Web Search"}) for d in web_raw]
         context_docs.extend(web_docs)
         t_ws = time.time() - t0
         steps.append({
@@ -396,6 +475,10 @@ async def sse_event_stream(question: str):
             "time_taken": round(t_ws, 3)
         })
         await asyncio.sleep(0.01)
+
+    # Prepend village origin freight context into the prompt
+    if village_doc:
+        context_docs.insert(0, village_doc)
 
     # Step 4: Generating Answer
     yield format_sse({
@@ -434,7 +517,9 @@ async def sse_event_stream(question: str):
             sources.append(f"{mandi} APMC ({crop.title()})")
         else:
             src = doc.metadata.get("source", "web")
-            if src == "web" or not src:
+            if src.startswith("Dynamic"):
+                sources.append(src)
+            elif src == "web" or not src:
                 sources.append("Agmarknet APMC Records")
             else:
                 page = doc.metadata.get("page")
@@ -451,7 +536,8 @@ async def sse_event_stream(question: str):
         "sources": list(dict.fromkeys(sources)),
         "path": path,
         "steps": steps,
-        "time_taken": total_time
+        "time_taken": total_time,
+        "village": v_id or None
     })
 
 @app.post("/ask/stream")
@@ -460,7 +546,7 @@ async def ask_stream_post(payload: AskRequest):
     if not payload.question.strip():
         raise HTTPException(status_code=400, detail="Question cannot be empty.")
     return StreamingResponse(
-        sse_event_stream(payload.question),
+        sse_event_stream(payload.question, village=payload.village),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
@@ -470,12 +556,15 @@ async def ask_stream_post(payload: AskRequest):
     )
 
 @app.get("/ask/stream")
-async def ask_stream_get(question: str = Query(..., description="The user query")):
+async def ask_stream_get(
+    question: str = Query(..., description="The user query"),
+    village: Optional[str] = Query(None, description="Farmer village origin")
+):
     """Server-Sent Events (SSE) streaming endpoint via GET (native EventSource support)."""
     if not question.strip():
         raise HTTPException(status_code=400, detail="Question cannot be empty.")
     return StreamingResponse(
-        sse_event_stream(question),
+        sse_event_stream(question, village=village),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
@@ -484,8 +573,30 @@ async def ask_stream_get(question: str = Query(..., description="The user query"
         }
     )
 
+# ---------------------------------------------------------------------------
+# Dynamic Village, Mandi, and Heatmap Endpoints (Frontend Direct Integration)
+# ---------------------------------------------------------------------------
+@app.get("/api/villages")
+def get_villages_endpoint():
+    """Returns all 36 registered villages across Nashik talukas with geo-coordinates."""
+    return get_villages_list()
+
+@app.get("/api/mandis")
+def get_mandis_endpoint(district: str = "nashik"):
+    """Returns all APMC mandis with coordinates and specialties."""
+    return get_mandis_list()
+
+@app.get("/api/heatmap")
+def get_heatmap_endpoint(crop: str = "onion", horizonDays: int = 0, village: str = "niphad_rural"):
+    """
+    Returns live dynamic mandi net-return heatmap matrix from the farmer's specific village origin.
+    Calculates Haversine distance, tiered road freight, modal forecast price, and spoilage decay.
+    """
+    return generate_heatmap_data(crop_id=crop, horizon_days=horizonDays, village_id=village)
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
     print(f"Starting CRAG FastAPI Server on http://localhost:{port} ...")
     uvicorn.run("server:app", host="0.0.0.0", port=port, reload=False)
+
