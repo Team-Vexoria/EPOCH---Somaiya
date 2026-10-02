@@ -49,26 +49,52 @@ export async function sendMessage({
     const storeState = useAppStore.getState();
     const batchQty = activeCrop ? (storeState.cropQuantities?.[activeCrop] || 20) : 20;
 
-    // Direct call to the backend CRAG pipeline
-    const response = await fetch(`${API_BASE_URL}/api/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        message,
-        language,
-        crop: activeCrop,
-        quantity: batchQty,
-        village: 'niphad_rural',
-      }),
-      signal,
-    });
+    let response: Response;
+
+    // 1. Try primary /ask endpoint with fallback to /api/chat
+    try {
+      response = await fetch(`${API_BASE_URL}/ask`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: message }),
+        signal,
+      });
+
+      if (!response.ok && response.status === 404) {
+        response = await fetch(`${API_BASE_URL}/api/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message,
+            language,
+            crop: activeCrop,
+            quantity: batchQty,
+            village: 'niphad_rural',
+          }),
+          signal,
+        });
+      }
+    } catch {
+      response = await fetch(`${API_BASE_URL}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message,
+          language,
+          crop: activeCrop,
+          quantity: batchQty,
+          village: 'niphad_rural',
+        }),
+        signal,
+      });
+    }
 
     if (!response.ok) {
       throw new Error(`CRAG Backend Server Error: ${response.status} ${response.statusText}`);
     }
 
     const data = await response.json();
-    const rawText = data.text || data.answer || 'No response generated from CRAG.';
+    const rawText = data.answer || data.text || 'No response generated from CRAG.';
 
     // Stream the real tokens word-by-word into the chat UI
     const words = rawText.split(' ');
@@ -82,29 +108,16 @@ export async function sendMessage({
       accumulated += (i === 0 ? '' : ' ') + words[i];
       onChunk(accumulated);
 
-      // Fast, natural token delivery (16ms per word)
+      // Natural, crisp token delivery (16ms per word)
       await new Promise((resolve) => setTimeout(resolve, 16));
     }
 
-    // Extract dynamic recommendation if present from backend
     const recommendation: Recommendation | undefined = data.recommendation || undefined;
-
     onDone(rawText, recommendation);
   } catch (err: any) {
     if (err.name === 'AbortError') {
       return;
     }
-
-    // If backend is not running, provide an honest, helpful diagnostic
-    const offlineMsg =
-      language === 'mr'
-        ? '⚠️ **CRAG बॅकएंड सर्व्हरशी संपर्क होऊ शकला नाही.**\n\nकृपया `backend` फोल्डरमध्ये `python main.py` सुरू असल्याची खात्री करा (http://localhost:8000).'
-        : language === 'hi'
-        ? '⚠️ **CRAG बैकएंड सर्वर से कनेक्शन नहीं हो पाया।**\n\nकृपया सुनिश्चित करें कि `backend` डायरेक्टरी में `python main.py` चल रहा है (http://localhost:8000).'
-        : '⚠️ **Unable to connect to the CRAG Backend Server.**\n\nPlease ensure the FastAPI server is running (`python main.py` in the `backend/` directory on http://localhost:8000).';
-
-    onChunk(offlineMsg);
-    onDone(offlineMsg, undefined);
     onError(err);
   }
 }
