@@ -1,0 +1,7 @@
+crop,tested_months,mean_absolute_error_rs_per_quintal,model
+onion,282,518.6832151300237,moving_average_3m
+soyabean,162,246.67283950617283,moving_average_3m
+tomato,107,648.6386292834891,moving_average_3m
+onion,164,1270.2073170731708,seasonal_naive
+soyabean,91,413.5824175824176,seasonal_naive
+tomato,57,827.8245614035088,seasonal_naive
