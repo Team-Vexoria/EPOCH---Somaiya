@@ -1,5 +1,5 @@
 /**
- * Design Tokens for EPOCH---Somaiya
+ * Design Tokens for Sell Smart (EPOCH---Somaiya)
  * 
  * Sourced from docs/DESIGN_BRIEF.md.
  * DO NOT hardcode hex colors or arbitrary values inside UI components.
@@ -12,36 +12,53 @@ export const colors = {
   current: 'currentColor',
 
   // Neutral Family (Default Light Theme: warm off-white / paper background + deep ink text)
-  // TODO: Set final hex values from docs/DESIGN_BRIEF.md
   neutral: {
-    bg: '#FBF9F5',         // TODO: Warm off-white / paper background
-    surface: '#FFFFFF',    // TODO: Crisp solid surface
-    border: '#E2DED4',     // TODO: Solid 1-2px high-contrast border
-    muted: '#737067',      // TODO: Readable dark-muted secondary text (min 4.5:1 WCAG AA)
-    ink: '#1C1917',        // TODO: Deep ink text (never near-black or dark backgrounds)
+    bg: '#FBF9F5',         // Warm off-white / paper background
+    surface: '#FFFFFF',    // Crisp solid surface
+    border: '#E2DED4',     // Solid 1-2px high-contrast border
+    muted: '#737067',      // Readable dark-muted secondary text (min 4.5:1 WCAG AA)
+    ink: '#1C1917',        // Deep ink text (never near-black or dark backgrounds)
   },
 
-  // Primary Domain Color
-  // TODO: Set final hex value and shades from docs/DESIGN_BRIEF.md
+  // Primary Domain Color (Agricultural Green / Trust)
   primary: {
-    DEFAULT: '#B44A28',    // TODO: Domain-specific primary (e.g. terracotta red)
-    hover: '#9C3D1F',      // TODO: Hover state shift
-    fg: '#FFFFFF',         // TODO: High contrast text on primary
+    DEFAULT: '#1E6B2D',    // Deep agricultural foliage green
+    hover: '#155523',      // Hover state
+    fg: '#FFFFFF',         // High contrast white text
+    subtle: '#EBF5ED',     // Solid high-contrast light green fill
   },
 
-  // Secondary Domain Color
-  // TODO: Set final hex value and shades from docs/DESIGN_BRIEF.md
+  // Secondary Domain Color (Harvest Terracotta / Earth)
   secondary: {
-    DEFAULT: '#2F4858',    // TODO: Domain-specific secondary (e.g. deep slate forest)
-    hover: '#233743',      // TODO: Hover state shift
-    fg: '#FFFFFF',         // TODO: High contrast text on secondary
+    DEFAULT: '#B44A28',    // Terracotta earth / harvest red
+    hover: '#9C3D1F',      // Hover state
+    fg: '#FFFFFF',         // High contrast white text
+    subtle: '#FDF2EE',     // Solid high-contrast light terracotta
   },
 
-  // Signal Color (Alerts, warnings, errors)
-  // TODO: Set final hex value from docs/DESIGN_BRIEF.md
+  // Decision & Advisory Action Colors
+  sell: {
+    DEFAULT: '#15803D',    // Sell Now (Forest Green)
+    fg: '#FFFFFF',
+    bg: '#DCFCE7',
+  },
+
+  hold: {
+    DEFAULT: '#B45309',    // Hold Produce (Amber Ochre)
+    fg: '#FFFFFF',
+    bg: '#FEF3C7',
+  },
+
+  risk: {
+    DEFAULT: '#B91C1C',    // High Spoilage / Price Drop Alert (Crimson)
+    fg: '#FFFFFF',
+    bg: '#FEE2E2',
+  },
+
+  // Signal / Alert Color
   signal: {
-    DEFAULT: '#D9381E',    // TODO: Direct high-contrast alert
-    fg: '#FFFFFF',         // TODO: High contrast text on signal
+    DEFAULT: '#D9381E',    // Direct high-contrast alert
+    fg: '#FFFFFF',
   },
 };
 
@@ -64,6 +81,6 @@ export const boxShadow = {
   // Deliberate shadow tokens: hard offset or none. No soft blurred glows.
   none: 'none',
   hard: '2px 2px 0px 0px rgba(28, 25, 23, 1)',
-  'hard-md': '4px 4px 0px 0px rgba(28, 25, 23, 1)',
-  'hard-lg': '6px 6px 0px 0px rgba(28, 25, 23, 1)',
+  'hard-md': '3px 3px 0px 0px rgba(28, 25, 23, 1)',
+  'hard-lg': '5px 5px 0px 0px rgba(28, 25, 23, 1)',
 };

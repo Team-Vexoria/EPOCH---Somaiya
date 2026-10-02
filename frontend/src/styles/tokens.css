@@ -1,4 +1,4 @@
-/* Design Tokens (CSS Variables & Tailwind v4 @theme support) */
+/* Design Tokens for Sell Smart (CSS Variables & Tailwind v4 @theme support) */
 :root {
   /* Neutral Family (Default Light Theme) */
   --color-neutral-bg: #FBF9F5;
@@ -7,20 +7,28 @@
   --color-neutral-muted: #737067;
   --color-neutral-ink: #1C1917;
 
-  /* Domain Tokens - TODO: Set from docs/DESIGN_BRIEF.md */
-  --color-primary: #B44A28;
-  --color-primary-hover: #9C3D1F;
+  /* Domain Tokens */
+  --color-primary: #1E6B2D;
+  --color-primary-hover: #155523;
   --color-primary-fg: #FFFFFF;
+  --color-primary-subtle: #EBF5ED;
 
-  --color-secondary: #2F4858;
-  --color-secondary-hover: #233743;
+  --color-secondary: #B44A28;
+  --color-secondary-hover: #9C3D1F;
   --color-secondary-fg: #FFFFFF;
+  --color-secondary-subtle: #FDF2EE;
+
+  --color-sell: #15803D;
+  --color-sell-bg: #DCFCE7;
+  --color-hold: #B45309;
+  --color-hold-bg: #FEF3C7;
+  --color-risk: #B91C1C;
+  --color-risk-bg: #FEE2E2;
 
   --color-signal: #D9381E;
   --color-signal-fg: #FFFFFF;
 }
 
-/* Tailwind v4 theme override */
 @theme {
   --color-neutral-bg: #FBF9F5;
   --color-neutral-surface: #FFFFFF;
@@ -28,13 +36,21 @@
   --color-neutral-muted: #737067;
   --color-neutral-ink: #1C1917;
 
-  --color-primary: #B44A28;
-  --color-primary-hover: #9C3D1F;
+  --color-primary: #1E6B2D;
+  --color-primary-hover: #155523;
   --color-primary-fg: #FFFFFF;
+  --color-primary-subtle: #EBF5ED;
 
-  --color-secondary: #2F4858;
-  --color-secondary-hover: #233743;
+  --color-secondary: #B44A28;
+  --color-secondary-hover: #9C3D1F;
   --color-secondary-fg: #FFFFFF;
+
+  --color-sell: #15803D;
+  --color-sell-bg: #DCFCE7;
+  --color-hold: #B45309;
+  --color-hold-bg: #FEF3C7;
+  --color-risk: #B91C1C;
+  --color-risk-bg: #FEE2E2;
 
   --color-signal: #D9381E;
   --color-signal-fg: #FFFFFF;
@@ -46,5 +62,6 @@
 
   /* Deliberate hard offset shadows */
   --shadow-hard: 2px 2px 0px 0px rgba(28, 25, 23, 1);
-  --shadow-hard-md: 4px 4px 0px 0px rgba(28, 25, 23, 1);
+  --shadow-hard-md: 3px 3px 0px 0px rgba(28, 25, 23, 1);
+  --shadow-hard-lg: 5px 5px 0px 0px rgba(28, 25, 23, 1);
 }

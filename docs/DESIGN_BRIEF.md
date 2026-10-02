@@ -1,127 +1,112 @@
-# Design Brief Template
+# Design Brief — Sell Smart (कृषी बाजार सल्लागार)
 
-> Fill in each section before designing or building any page or component. This brief grounds all visual and interaction decisions in the specific domain of this product.
+> Grounded design specifications for the "Where & When to Sell" Agri-Decision Advisory for Farmers & FPOs in Maharashtra.
 
 ---
 
 ## 1. Product & Problem Statement
-*Write one concise paragraph describing what the product actually does, what core problem it solves, and the measurable result it produces.*
+Smallholder farmers and Farmer Producer Organisations (FPOs) across Maharashtra consistently lose 15%–35% of their crop value to harvest-time distress sales because localized arrivals depress local mandi prices. Existing tools only show today's spot rate or isolated price forecasts, failing to account for transport expenses and perishability decay. 
 
-- **Summary**: <!-- Fill in one paragraph describing the product and problem statement -->
+**Sell Smart** is a decision-support advisory that calculates actual **net money in hand** across 10–15 regional mandis over a 1–3 week horizon by computing:
+$$\text{Net Return} = \text{Forecasted Price} \times (1 - \text{Spoilage Loss}) - \text{Transport Cost} - \text{Storage Cost}$$
+It delivers unequivocal advice (e.g., *"Hold 8 days, sell at Lasalgaon APMC, expected net gain ₹185/quintal"*) via an editorial web dashboard and a zero-friction WhatsApp/Voice note interface in Marathi and Hindi.
 
 ---
 
 ## 2. Domain & Users
-*Specify target audience attributes, expectations, and context.*
-
-- **Target Audience**: <!-- Who they are (e.g. logistics coordinators, research scientists, finance managers) -->
-- **Language & Tone**: <!-- Domain-specific terminology, technical level, readability tone -->
-- **Primary Devices**: <!-- Mobile-first, desktop workstation, tablet on-field, multi-monitor -->
-- **Technical Comfort**: <!-- Novice, general consumer, power user, developer -->
+- **Target Audience**:
+  1. *Marginal & Smallholder Farmers* (0.5 – 5 acres): Need quick binary clarity (*Sell today nearby vs. wait & truck 40km away*), accessible via simple Marathi/Hindi WhatsApp audio or text.
+  2. *FPO Directors & Aggregators* (50 – 500 member farmers): Need bulk multi-truck dispatch optimization, split loads across high-absorbing terminal mandis (e.g., Vashi vs. Pune vs. Lasalgaon), and verifiable backtested ledger proofs.
+- **Language & Tone**: High-contrast, vernacular-first Marathi (मराठी) and Hindi (हिंदी) with English toggle. Zero jargon; simple financial rupee metrics (नफा / तोटा, प्रति क्विंटल निव्वळ नफा).
+- **Primary Devices**: Mobile-first for farmers (WhatsApp simulation & mobile browser 360px+), desktop workstation for FPO managers planning freight logistics.
+- **Technical Comfort**: Low-to-moderate for individual farmers; moderate for FPO managers.
 
 ---
 
 ## 3. Brand Personality
-*Choose 3 distinct adjectives that describe the visual feel, and 3 adjectives to explicitly avoid.*
-
-- **Core Adjectives (Aim for)**:
-  1. <!-- e.g., Editorial -->
-  2. <!-- e.g., Precise -->
-  3. <!-- e.g., Warm -->
+- **Core Adjectives**:
+  1. *Earthy & Agricultural* (Grounded in fertile soil, harvest grains, and rural mandis; never tech-sterile).
+  2. *Decisive & Honest* (Shows price uncertainty ranges and spoilage risks plainly rather than false single-point certainty).
+  3. *Editorial & Utilitarian* (High contrast, clean ledger grids, bold typographic hierarchy, functional and crisp).
 - **Anti-Adjectives (Avoid)**:
-  1. <!-- e.g., Generic-SaaS -->
-  2. <!-- e.g., Cyberpunk/Glowy -->
-  3. <!-- e.g., Playful/Toy-like -->
+  1. *Generic AI / Neon-Cyberpunk* (No purple gradients, glowing borders, or dark AI themes).
+  2. *SaaS Fluff* (No buzzwords like "supercharge", "revolutionize", or fake testimonials).
+  3. *Gimmicky / Toy-like* (No infantilizing cartoon illustrations or low-contrast cards).
 
 ---
 
 ## 4. Color Tokens & Domain Rationale
-*Define the token colors. Default to a light theme. Hex values must be grounded in domain imagery and context, never a generic tech gradient or AI purple/cyan.*
+*Defaulting strictly to a warm Light Theme. Hex values reflect the soil, harvest, and ledger books of Maharashtra agriculture.*
 
-- **Neutral Family** (Off-white / cream / paper background + deep ink text):
-  - Background (`--color-background`): `<!-- e.g., #FBF9F5 (warm paper) -->`
-  - Surface (`--color-surface`): `<!-- e.g., #FFFFFF (pure solid) -->`
-  - Text Primary (`--color-text-primary`): `<!-- e.g., #1A1A1A (deep ink) -->`
-  - Text Secondary (`--color-text-secondary`): `<!-- e.g., #4A4A4A (readable dark gray, passes 4.5:1 WCAG AA) -->`
-  - Border (`--color-border`): `<!-- e.g., #E2DED4 (solid, high-contrast border) -->`
-- **Primary Color** (`--color-primary`): `<!-- e.g., #B44A28 (Terracotta red) -->`
-  - *Domain Rationale*: <!-- Why does this color represent the domain? -->
-- **Secondary Color** (`--color-secondary`): `<!-- e.g., #2F4858 (Deep slate forest) -->`
-  - *Domain Rationale*: <!-- Why does this color represent the domain? -->
-- **Signal Color** (`--color-signal`): `<!-- e.g., #D9381E (Direct alert red) -->`
-  - *Domain Rationale*: <!-- Purpose and alert state logic -->
+- **Neutral Family**:
+  - Background (`--color-neutral-bg`): `#FBF9F5` (Warm off-white unbleached paper)
+  - Surface (`--color-neutral-surface`): `#FFFFFF` (Solid crisp paper card)
+  - Ink (`--color-neutral-ink`): `#1C1917` (Deep charcoal ink, strong contrast AA compliant)
+  - Muted (`--color-neutral-muted`): `#6E6A61` (Readable slate gray for captions and metadata, 4.8:1 ratio)
+  - Border (`--color-neutral-border`): `#DDD8CB` (Crisp 1px - 2px solid ledger dividers)
+- **Primary Color — Harvest Terracotta (`--color-primary`)**:
+  - Value: `#B44A28` (Warm baked terracotta / Maharashtra red soil & ripe tomato)
+  - *Domain Rationale*: Reflects harvest fertility, clay pottery, and agricultural vibrancy without eye fatigue.
+- **Secondary Color — Deep Monsoon Slate (`--color-secondary`)**:
+  - Value: `#2D5A27` (Deep agricultural foliage / soybean canopy) with slate accent `#2F4858`
+  - *Domain Rationale*: Symbolizes healthy crop yield and trustworthy institutional advisory.
+- **Signal Color — Alert Crimson (`--color-signal`)**:
+  - Value: `#D9381E` (Clear distress sale alert & high spoilage risk warning)
 
 ---
 
 ## 5. Typography
-*Select a distinctive display typeface paired with a readable body typeface (from Google Fonts or Fontshare). Do not use Inter or Roboto by default.*
-
-- **Display Typeface**: `<!-- e.g., Instrument Serif, Cabinet Grotesk, Fraunces -->`
-- **Text / Body Typeface**: `<!-- e.g., General Sans, Plus Jakarta Sans, Newsreader -->`
+- **Display Typeface**: *Space Grotesk* (Bold, modern geometric numbers and headings reminiscent of agricultural ledgers).
+- **Text / Body Typeface**: *Plus Jakarta Sans* (High legibility at 16px minimum, supports Devanagari numerals and crisp mobile rendering).
 - **Typographic Scale**:
-  - `Display / Hero`: `clamp(48px, 6vw, 80px)`
-  - `H1`: `clamp(36px, 4vw, 56px)`
-  - `H2`: `clamp(28px, 3vw, 40px)`
-  - `H3`: `clamp(22px, 2vw, 28px)`
-  - `Body`: `16px minimum (17px - 18px preferred for long reading)`
-  - `Secondary / Captions / Badges`: `14px minimum (strictly nothing below 14px)`
+  - Hero Numbers: `clamp(36px, 5vw, 56px)` font-weight 700
+  - H1 / Mandi Names: `clamp(26px, 3.5vw, 36px)` font-weight 700
+  - H2 / Section Titles: `clamp(20px, 2.5vw, 26px)` font-weight 600
+  - Body Text: `16px` minimum desktop & mobile
+  - Metadata & Badges: `14px` minimum (Strictly zero text below 14px)
 
 ---
 
 ## 6. Layout & Grid Approach
-*Describe the layout architecture, asymmetric compositions, grid divisions, and spacing rhythm.*
-
-- **Grid System**: <!-- e.g., 12-column editorial grid, asymmetric 7:5 split -->
-- **Rhythm & Whitespace**: <!-- e.g., Generous 96px - 128px section margins, alternating full-bleed solid color blocks -->
-- **Section Layout Plan**:
-  - Section 1 (Hero): <!-- Layout structure -->
-  - Section 2: <!-- Distinct layout structure (must not duplicate Section 1) -->
-  - Section 3: <!-- Distinct layout structure -->
+- **Asymmetric Editorial Layout**: 12-column responsive grid with an asymmetric 7:5 split between the active Recommendation Ledger and the Spatial Distance Matrix.
+- **Hard Offset Surfaces**: Flat solid cards with `2px solid #1C1917` borders and hard offset box shadows (`shadow-hard: 3px 3px 0px #1C1917`).
+- **No Consecutive Symmetrical Grids**: Visual rhythm alternates between the Decision Hero, the Comparative Mandi Matrix, the WhatsApp Audio Console, and the Historical Backtest Graph.
 
 ---
 
 ## 7. Reference Benchmarks & Adopted Principles
-*List 2 to 3 real-world, professionally designed sites studied for inspiration and note the specific design principles adopted (never copy code, layouts, or brand assets).*
-
-1. **Reference Site 1**: `<!-- Site URL / Name -->`
-   - *Principles Adopted*: <!-- e.g., High-contrast monochrome borders, dramatic scale contrast in typography -->
-2. **Reference Site 2**: `<!-- Site URL / Name -->`
-   - *Principles Adopted*: <!-- e.g., Editorial asymmetric split hero with structured metadata sidebar -->
+1. **Agmarknet & MSAMB (Maharashtra State Agricultural Marketing Board)**:
+   - *Adopted*: Real modal prices, arrival volumes (quintals), and authentic mandi hub names.
+   - *Refined*: Replaced bureaucratic dense text tables with a real-time net-margin calculator and spatial transport cost deductions.
+2. **Gov.uk & Financial Times Editorial Ledgers**:
+   - *Adopted*: Ultra-readable monochrome borders, high-contrast numerical hierarchy, and plain-language summaries (*"Hold 8 days..."*).
 
 ---
 
 ## 8. The Memorable Domain Ideas
-*Every major page must have an original, domain-specific visual or interactive concept.*
-
-- **Hero Concept**: <!-- e.g., An interactive architectural blueprint ledger rather than a floating dashboard mock -->
-- **Product Screen / Core Interface Concept**: <!-- e.g., Step-by-step physical timeline cards showing live agent verification -->
+- **Idea 1 (Farmer View)**: The **Net-Rupee Decision Barometer** — Directly contrasts "Sell Today at Nearest Mandi" vs "Optimized Mandi & Holding Plan", showing the exact rupee difference in prominent 36px ink typography.
+- **Idea 2 (WhatsApp Voice Simulator)**: An interactive phone mockup that plays simulated Marathi/Hindi farmer voice queries and responds with structured vernacular text and audio readout.
+- **Idea 3 (FPO Logistics Matrix)**: Multi-truck allocation planner that prevents market saturation by distributing 100 quintals across 3 complementary mandis.
 
 ---
 
 ## 9. Motion Plan (GSAP)
-*Define where and why motion is applied. Motion must guide or explain, not decorate.*
-
-- **Page Load Sequence**: <!-- Timeline choreography, duration 0.2s - 0.5s -->
-- **Scroll Storytelling (1 - 2 key moments)**: <!-- Purposeful scroll trigger explaining product workflow -->
-- **State Changes / Transitions**: <!-- Micro-interactions on buttons, drawer expands -->
-- **Reduced Motion Strategy**: <!-- Fallbacks when prefers-reduced-motion is true -->
+- **Rhythm & Page Flow**: Subtle 0.3s staggered reveal of mandi cards sorted by Net Realized Price.
+- **Slider Dynamics**: When the farmer adjusts the "Holding Days" slider, net return recalculates smoothly, visually showing the spoilage decay curve intersecting the price rise.
+- **Reduced Motion**: All animations immediately disable when `prefers-reduced-motion` is active.
 
 ---
 
-## 10. Component Style Decisions
-*Establish systematic visual choices for components.*
-
-- **Corner Radius**: `<!-- e.g., Systematic 4px crisp radius / 0px sharp corners -->`
-- **Borders**: `<!-- e.g., Solid 1px or 2px high contrast border (#E2DED4) -->`
-- **Shadows**: `<!-- e.g., Hard offset 3px 3px 0px #1A1A1A or none; no soft blurred glows -->`
-- **Button System**: `<!-- e.g., Solid primary fill with 1px border, 48px height, 16px font-weight medium, 2px translateY on active -->`
+## 10. Component Decisions
+- **Buttons**: Flat solid `#B44A28` (Primary) or `#2D5A27` (Secondary) with `2px solid #1C1917` border, 48px height, 16px font-weight bold, and 2px translation on active press.
+- **Cards**: Flat white `#FFFFFF` surface with `1-2px solid #DDD8CB` or `#1C1917` border and `shadow-hard`.
+- **Badges**: Solid high-contrast chips (e.g. `HIGH CONFIDENCE`, `SPOILAGE WARNING`), text size strictly 14px.
 
 ---
 
 ## 11. Pre-Launch Checklist
-Verify before shipping any page built with this brief:
-- [ ] No banned colors, gradients, glow or blur utilities used.
-- [ ] Light theme default with warm off-white/paper tones and ink text.
-- [ ] Minimum font size is 14px; body text is 16px minimum.
-- [ ] No two consecutive sections share the same layout structure.
-- [ ] Automated verification passes: `npm run design:check` reports 0 errors.
+- [x] Warm off-white light theme default (`#FBF9F5`), ink text (`#1C1917`).
+- [x] Zero gradients, glows, or glassmorphism.
+- [x] Minimum text size is 14px; body is 16px.
+- [x] All 3 target crops (Tomato, Onion, Soybean) and 12 Maharashtra mandis configured.
+- [x] `npm run design:check` passes with 0 violations.

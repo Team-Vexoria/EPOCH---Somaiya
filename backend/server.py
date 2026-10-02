@@ -29,9 +29,11 @@ from crag_app import (
     GROQ_FAST_MODEL
 )
 
+from whatsapp_bot import router as whatsapp_router
+
 app = FastAPI(
-    title="Agentic Corrective RAG (CRAG) API",
-    description="High-performance CRAG system with parallel batch grading, dual-model architecture, and real-time SSE streaming.",
+    title="Agentic Corrective RAG (CRAG) & WhatsApp Advisory API",
+    description="High-performance CRAG system with parallel batch grading, dual-model architecture, and real-time WhatsApp bot.",
     version="1.0.0"
 )
 
@@ -43,6 +45,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Attach WhatsApp Bot Router (/whatsapp/twilio, /whatsapp/meta, /whatsapp/test)
+app.include_router(whatsapp_router)
 
 class AskRequest(BaseModel):
     question: str = Field(..., description="The user query or research question", example="What is self-attention?")
