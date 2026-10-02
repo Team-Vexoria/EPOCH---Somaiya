@@ -429,13 +429,19 @@ def ask_crag(question: str) -> dict:
 
     sources = []
     for doc in res.get("documents", []):
-        src = doc.metadata.get("source", "web")
-        if src == "web" or not src:
-            sources.append("web")
+        mandi = doc.metadata.get("mandi")
+        crop = doc.metadata.get("crop")
+        if mandi and crop:
+            sources.append(f"{mandi} APMC ({crop.title()})")
         else:
-            page = doc.metadata.get("page")
-            base = os.path.basename(src)
-            sources.append(f"{base} (page {page + 1})" if page is not None else base)
+            src = doc.metadata.get("source", "web")
+            if src == "web" or not src:
+                sources.append("Agmarknet APMC Records")
+            else:
+                page = doc.metadata.get("page")
+                base = os.path.basename(src)
+                sources.append(f"{base} (page {page + 1})" if page is not None else base)
+    sources = list(dict.fromkeys(sources))
 
     return {
         "answer": res.get("generation", ""),

@@ -258,6 +258,36 @@ def generate_whatsapp_response(user_text: str, phone: str = "unknown") -> str:
     else:
         qty = sess.get("quantity", 20)
 
+    # For natural language / conversational farmer questions, invoke the live Groq RAG pipeline
+    is_conversational = len(user_text.split()) > 2 or any(
+        kw in user_text.lower() for kw in [
+            "कधी", "कुठे", "केव्हा", "भाव", "दर", "विकू", "ठेवू", "नफा",
+            "कब", "कहाँ", "भाव", "बेचें", "रुकें", "फायदा",
+            "when", "where", "sell", "hold", "price", "rate", "gain", "profit"
+        ]
+    )
+
+    if is_conversational:
+        try:
+            from crag_app import ask_crag
+            lang_prompt = {
+                "mr": "कृपया उत्तर सोप्या मराठीत द्या.",
+                "hi": "कृपया उत्तर सरल हिन्दी में दें।",
+                "en": "Please provide practical farmer advice in English."
+            }.get(lang, "")
+            full_prompt = f"{user_text} (Crop: {crop_id}, Quantity: {qty} quintals, District: Nashik. {lang_prompt})"
+            res = ask_crag(full_prompt)
+            if res and res.get("answer"):
+                ans = res["answer"].strip()
+                footer = {
+                    "mr": "\n\n━━━━━━━━━━━━━━━━━━━━\n📍 *इतर पिकांसाठी उत्तर पाठवा:*\n• *१* - कांदा  • *२* - टोमॅटो  • *३* - सोयाबीन\n🌐 *थेट नकाशा व कॅल्क्युलेटर:* https://sellsmart.app",
+                    "hi": "\n\n━━━━━━━━━━━━━━━━━━━━\n📍 *अन्य फसलों के लिए रिप्लाई करें:*\n• *1* - प्याज  • *2* - टमाटर  • *3* - सोयाबीन\n🌐 *वेबसाइट और मंडी मैप:* https://sellsmart.app",
+                    "en": "\n\n━━━━━━━━━━━━━━━━━━━━\n📍 *Reply to switch crops:*\n• *1* - Onion  • *2* - Tomato  • *3* - Soybean\n🌐 *Map & Tools:* https://sellsmart.app"
+                }.get(lang, "")
+                return f"🌾 *Sell Smart AI कृषी सल्लागार*\n━━━━━━━━━━━━━━━━━━━━\n{ans}{footer}"
+        except Exception as e:
+            logger.warning("Live Groq RAG call failed for WhatsApp, falling back to static template: %s", e)
+
     data = MANDI_DATA[crop_id]
 
     def _net_num(m):

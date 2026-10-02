@@ -158,13 +158,18 @@ def execute_crag_pipeline(question: str) -> Dict[str, Any]:
     # Format sources
     sources = []
     for doc in context_docs:
-        src = doc.metadata.get("source", "web")
-        if src == "web" or not src:
-            sources.append("web")
+        mandi = doc.metadata.get("mandi")
+        crop = doc.metadata.get("crop")
+        if mandi and crop:
+            sources.append(f"{mandi} APMC ({crop.title()})")
         else:
-            page = doc.metadata.get("page")
-            base = os.path.basename(src)
-            sources.append(f"{base} (page {page + 1})" if page is not None else base)
+            src = doc.metadata.get("source", "web")
+            if src == "web" or not src:
+                sources.append("Agmarknet APMC Records")
+            else:
+                page = doc.metadata.get("page")
+                base = os.path.basename(src)
+                sources.append(f"{base} (page {page + 1})" if page is not None else base)
 
     total_time = round(time.time() - t_start, 3)
     path = "corrective" if web_needed == "Yes" else "rag"
@@ -205,6 +210,46 @@ def ask_endpoint(payload: AskRequest):
     try:
         result = execute_crag_pipeline(payload.question)
         return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+class ApiChatRequest(BaseModel):
+    message: str
+    language: Optional[str] = "en"
+    crop: Optional[str] = None
+    quantity: Optional[float] = None
+    village: Optional[str] = None
+
+@app.post("/api/chat")
+def api_chat_endpoint(payload: ApiChatRequest):
+    """
+    Frontend chat endpoint connecting the UI directly to the Agentic CRAG engine.
+    """
+    if not payload.message.strip():
+        raise HTTPException(status_code=400, detail="Message cannot be empty.")
+
+    query = payload.message
+    extra_context = []
+    if payload.crop and payload.crop.lower() not in query.lower():
+        extra_context.append(f"Crop: {payload.crop}")
+    if payload.quantity and str(payload.quantity) not in query:
+        extra_context.append(f"Quantity: {payload.quantity} quintals")
+    if extra_context:
+        query += " (" + ", ".join(extra_context) + ")"
+
+    try:
+        result = execute_crag_pipeline(query)
+        structured_sources = [
+            {"title": s, "snippet": f"Verified APMC market record: {s}"}
+            for s in result["sources"]
+        ]
+        return {
+            "text": result["answer"],
+            "path": result["path"],
+            "sources": structured_sources,
+            "steps": result["steps"],
+            "time_taken": result["time_taken"]
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -383,13 +428,18 @@ async def sse_event_stream(question: str):
     # Sources
     sources = []
     for doc in context_docs:
-        src = doc.metadata.get("source", "web")
-        if src == "web" or not src:
-            sources.append("web")
+        mandi = doc.metadata.get("mandi")
+        crop = doc.metadata.get("crop")
+        if mandi and crop:
+            sources.append(f"{mandi} APMC ({crop.title()})")
         else:
-            page = doc.metadata.get("page")
-            base = os.path.basename(src)
-            sources.append(f"{base} (page {page + 1})" if page is not None else base)
+            src = doc.metadata.get("source", "web")
+            if src == "web" or not src:
+                sources.append("Agmarknet APMC Records")
+            else:
+                page = doc.metadata.get("page")
+                base = os.path.basename(src)
+                sources.append(f"{base} (page {page + 1})" if page is not None else base)
 
     total_time = round(time.time() - t_start, 3)
     path = "corrective" if web_needed == "Yes" else "rag"
