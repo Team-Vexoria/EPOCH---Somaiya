@@ -359,8 +359,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <button
             type="button"
             onClick={() => {
-              const queryText = 'नमस्कार, मला नाशिक बाजार समितीमधील कांदा विक्री सल्ला हवा आहे.';
-              window.open(`https://wa.me/?text=${encodeURIComponent(queryText)}`, '_blank', 'noopener,noreferrer');
+              const bizNumber = import.meta.env.VITE_WA_BUSINESS_NUMBER as string | undefined;
+              if (bizNumber && bizNumber.trim()) {
+                // Opens a direct chat window to the bot's real WhatsApp Business number
+                window.open(`https://wa.me/${bizNumber.trim()}`, '_blank', 'noopener,noreferrer');
+              } else {
+                // Fallback: pre-fill a greeting so at least the intent is clear
+                const greeting = 'नमस्कार, मला नाशिक बाजार समितीमधील कांदा विक्री सल्ला हवा आहे.';
+                window.open(`https://wa.me/?text=${encodeURIComponent(greeting)}`, '_blank', 'noopener,noreferrer');
+              }
               onClose();
             }}
             className="w-full p-2 text-left text-sm font-bold text-neutral-ink border-2 border-transparent hover:border-neutral-border hover:bg-neutral-surface transition-all flex items-center gap-2 cursor-pointer"
