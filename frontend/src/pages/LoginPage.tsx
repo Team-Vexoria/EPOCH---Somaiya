@@ -60,7 +60,9 @@ export const LoginPage: React.FC = () => {
   };
 
   const handleDemoLogin = () => {
-    login(AUTH_CONFIG.demoPhone);
+    const cleaned = phone.replace(/\D/g, '').slice(0, 10);
+    const loginPhone = cleaned.length > 0 ? cleaned : AUTH_CONFIG.demoPhone;
+    login(loginPhone);
     navigateNext();
   };
 
@@ -105,7 +107,8 @@ export const LoginPage: React.FC = () => {
             </div>
 
             <PhoneInput
-              initialPhone={phone}
+              phone={phone}
+              onPhoneChange={setPhone}
               onSendOtp={handleSendOtp}
               isLoading={isLoading}
             />

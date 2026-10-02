@@ -39,9 +39,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onOpenCalculator,
   onOpenAlerts,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
+  const currentLang = i18n.language || 'mr';
 
   const {
     phone,
@@ -51,6 +52,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     renameConversation,
     deleteConversation,
     logout,
+    login,
   } = useAppStore();
 
   const [openMenuConvId, setOpenMenuConvId] = useState<string | null>(null);
@@ -383,7 +385,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <Phone className="w-3.5 h-3.5" />
               </div>
               <span className="font-bold text-sm text-neutral-ink truncate">
-                +91 {phone || '9822012345'}
+                {(() => {
+                  if (!phone) return '+91 9822012345';
+                  const digits = phone.replace(/\D/g, '');
+                  if (digits.length === 10) return `+91 ${digits}`;
+                  if (digits.length === 12 && digits.startsWith('91')) return `+91 ${digits.slice(2)}`;
+                  return phone.startsWith('+') ? phone : `+91 ${phone}`;
+                })()}
               </span>
             </div>
 
@@ -415,6 +423,36 @@ export const Sidebar: React.FC<SidebarProps> = ({
               >
                 <Settings className="w-4 h-4 text-secondary" />
                 <span>{t('chat.changeCrops')}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsUserMenuOpen(false);
+                  const promptMsg =
+                    currentLang === 'mr'
+                      ? 'तुमचा १० अंकी मोबाईल नंबर प्रविष्ट करा:'
+                      : currentLang === 'hi'
+                      ? 'अपना १० अंकों का मोबाइल नंबर दर्ज करें:'
+                      : 'Enter your 10-digit mobile number:';
+                  const input = window.prompt(promptMsg, phone || '');
+                  if (input !== null) {
+                    const cleaned = input.replace(/\D/g, '').slice(0, 10);
+                    if (cleaned.length === 10) {
+                      login(cleaned);
+                    }
+                  }
+                }}
+                className="w-full text-left px-3 py-2 text-sm font-bold text-neutral-ink hover:bg-neutral-bg flex items-center gap-2.5 cursor-pointer"
+              >
+                <Phone className="w-4 h-4 text-primary" />
+                <span>
+                  {currentLang === 'mr'
+                    ? 'मोबाईल नंबर बदला'
+                    : currentLang === 'hi'
+                    ? 'मोबाइल नंबर बदलें'
+                    : 'Change Mobile Number'}
+                </span>
               </button>
 
               <button

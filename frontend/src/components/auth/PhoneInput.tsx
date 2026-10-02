@@ -4,22 +4,32 @@ import { Phone, ArrowRight, Loader2 } from 'lucide-react';
 
 interface PhoneInputProps {
   initialPhone?: string;
+  phone?: string;
+  onPhoneChange?: (phone: string) => void;
   onSendOtp: (phone: string) => Promise<void>;
   isLoading: boolean;
 }
 
 export const PhoneInput: React.FC<PhoneInputProps> = ({
   initialPhone = '',
+  phone: controlledPhone,
+  onPhoneChange,
   onSendOtp,
   isLoading,
 }) => {
   const { t } = useTranslation();
-  const [phone, setPhone] = useState(initialPhone);
+  const [internalPhone, setInternalPhone] = useState(initialPhone);
   const [error, setError] = useState<string | null>(null);
+
+  const phone = controlledPhone !== undefined ? controlledPhone : internalPhone;
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value.replace(/\D/g, '').slice(0, 10);
-    setPhone(raw);
+    if (onPhoneChange) {
+      onPhoneChange(raw);
+    } else {
+      setInternalPhone(raw);
+    }
     if (error) setError(null);
   };
 
