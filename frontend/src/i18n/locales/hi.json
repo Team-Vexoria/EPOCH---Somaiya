@@ -60,7 +60,14 @@
     "shelfLifeGood": "ताजा माल: {{days}} दिन शेल्फ लाइफ शेष।",
     "freshnessLevel": "ताजगी का स्तर",
     "clickToSetHarvest": "कटाई की तारीख दर्ज करने के लिए यह फसल चुनें",
-    "updateHarvestDate": "कटाई की तारीख बदलें"
+    "updateHarvestDate": "कटाई की तारीख बदलें",
+    "stockQuestion": "आपके पास कितनी फसल (क्विंटल) है?",
+    "stockSubtitle": "ऐप में मुनाफा और परिवहन खर्च आपकी इसी मात्रा पर आंका जाएगा",
+    "stockQuintals": "{{count}} क्विंटल",
+    "stockPreset10": "१० क्विंटल",
+    "stockPreset20": "२० क्विंटल",
+    "stockPreset50": "५० क्विंटल",
+    "stockPreset100": "१०० क्विंटल"
   },
   "chat": {
     "newChat": "नई बातचीत",
@@ -202,7 +209,18 @@
     "spoilageDeduction": "ढुलाई में खराबी नुकसान",
     "netInHand": "हाथ में मिलने वाला शुद्ध भाव",
     "askAboutMandi": "इस मंडी के लिए AI सलाहकार से पूछें",
-    "selectMandiPrompt": "दूरी, भाड़ा और भाव के रुझान देखने के लिए नक्शे पर किसी मंडी पर क्लिक करें।"
+    "selectMandiPrompt": "दूरी, भाड़ा और भाव के रुझान देखने के लिए नक्शे पर किसी मंडी पर क्लिक करें।",
+    "farmerLocation": "आप यहाँ हैं (किसान स्थान)",
+    "deviceGpsLive": "लाइव डिवाइस स्थान (GPS)",
+    "routeToMandi": "मंडी तक सीधा परिवहन मार्ग",
+    "totalTravelCost": "कुल यात्रा / ढुलाई खर्च",
+    "totalNetProfit": "हाथ में मिलने वाला कुल शुद्ध मुनाफा",
+    "yourStock": "आपकी फसल",
+    "ratePerQtl": "दर / क्विंटल",
+    "approxTransit": "~{{minutes}} मिनट यात्रा",
+    "readMoreBreakdown": "अधिक जानकारी: भाव कटौती विवरण और ७ दिवसीय चार्ट",
+    "collapseBreakdown": "विवरण छुपाएं",
+    "extraVsDistress": "+{{extra}} स्थानीय बिक्री से अधिक मुनाफा"
   },
   "fpo": {
     "title": "FPO थोक बिक्री एवं लॉजिस्टिक्स योजना",

@@ -82,5 +82,6 @@ export interface UserPreferences {
   language: Language;
   crops: CropId[];
   harvestDaysAgo?: HarvestDaysRecord;
+  cropQuantities?: Record<CropId, number>;
   onboardingComplete: boolean;
 }

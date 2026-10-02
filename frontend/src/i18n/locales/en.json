@@ -60,7 +60,14 @@
     "shelfLifeGood": "Fresh Batch: {{days}} days remaining shelf-life.",
     "freshnessLevel": "Freshness Level",
     "clickToSetHarvest": "Select this crop to set harvest date",
-    "updateHarvestDate": "Update Harvest Date"
+    "updateHarvestDate": "Update Harvest Date",
+    "stockQuestion": "How much stock do you have?",
+    "stockSubtitle": "Profits and transport across the platform will be calculated for this batch size",
+    "stockQuintals": "{{count}} Quintals",
+    "stockPreset10": "10 qtl",
+    "stockPreset20": "20 qtl",
+    "stockPreset50": "50 qtl",
+    "stockPreset100": "100 qtl"
   },
   "chat": {
     "newChat": "New Chat",
@@ -202,7 +209,18 @@
     "spoilageDeduction": "Transit / Spoilage loss",
     "netInHand": "Net money in hand",
     "askAboutMandi": "Consult AI Assistant for this Mandi",
-    "selectMandiPrompt": "Select any mandi marker to inspect details, price trends, and freight breakdown."
+    "selectMandiPrompt": "Select any mandi marker to inspect details, price trends, and freight breakdown.",
+    "farmerLocation": "You Are Here (Farmer Location)",
+    "deviceGpsLive": "Live Device GPS",
+    "routeToMandi": "Direct Transit Route",
+    "totalTravelCost": "Total Travelling Cost",
+    "totalNetProfit": "Total Net In Pocket",
+    "yourStock": "Your Stock",
+    "ratePerQtl": "Rate / qtl",
+    "approxTransit": "~{{minutes}} mins travel",
+    "readMoreBreakdown": "Read More: Price Breakdown & 7-Day Chart",
+    "collapseBreakdown": "Hide Detailed Breakdown",
+    "extraVsDistress": "+{{extra}} more profit than local sale"
   },
   "fpo": {
     "title": "FPO Bulk Planning & Freight Allocation",

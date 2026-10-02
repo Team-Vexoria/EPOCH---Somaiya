@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   Plus,
   Minus,
+  Package,
 } from 'lucide-react';
 import { CROPS_LIST } from '../config/crops';
 import { useAppStore } from '../store/useAppStore';
@@ -31,8 +32,10 @@ export const CropsPage: React.FC = () => {
   const {
     crops: savedCrops,
     harvestDaysAgo: savedHarvestDaysAgo,
+    cropQuantities: savedCropQuantities,
     setCrops,
     setAllHarvestDaysAgo,
+    setAllCropQuantities,
     completeOnboarding,
   } = useAppStore();
 
@@ -44,6 +47,12 @@ export const CropsPage: React.FC = () => {
     onion: savedHarvestDaysAgo?.onion ?? 0,
     tomato: savedHarvestDaysAgo?.tomato ?? 0,
     soybean: savedHarvestDaysAgo?.soybean ?? 0,
+  });
+
+  const [quantities, setQuantities] = useState<Record<CropId, number>>({
+    onion: savedCropQuantities?.onion ?? 20,
+    tomato: savedCropQuantities?.tomato ?? 15,
+    soybean: savedCropQuantities?.soybean ?? 30,
   });
 
   const toggleCrop = (id: CropId) => {
@@ -59,10 +68,18 @@ export const CropsPage: React.FC = () => {
     }));
   };
 
+  const updateCropQuantity = (cropId: CropId, qty: number) => {
+    setQuantities((prev) => ({
+      ...prev,
+      [cropId]: Math.max(1, qty),
+    }));
+  };
+
   const handleContinue = () => {
     if (selectedCrops.length === 0) return;
     setCrops(selectedCrops);
     setAllHarvestDaysAgo(harvestDays);
+    setAllCropQuantities(quantities);
     completeOnboarding();
     navigate('/chat');
   };
@@ -310,6 +327,71 @@ export const CropsPage: React.FC = () => {
                           onClick={() => updateHarvestDay(crop.id, daysAgo + 1)}
                           className="w-11 h-11 flex items-center justify-center bg-neutral-bg hover:bg-neutral-surface border-l-2 border-neutral-ink text-neutral-ink font-black cursor-pointer"
                           aria-label="Increase harvest days"
+                        >
+                          <Plus className="w-4 h-4 stroke-[3]" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Stock Quantity Section */}
+                  <div className="pt-3 border-t-2 border-neutral-ink/10 space-y-2">
+                    <div className="flex items-center justify-between flex-wrap gap-1">
+                      <div className="text-sm font-bold text-neutral-ink flex items-center gap-1.5">
+                        <Package className="w-4 h-4 text-primary" />
+                        <span>{t('crops.stockQuestion')}</span>
+                      </div>
+                      <span className="text-sm font-medium text-neutral-muted">
+                        {t('crops.stockSubtitle')}
+                      </span>
+                    </div>
+
+                    {/* Presets */}
+                    <div className="flex flex-wrap gap-2">
+                      {[10, 20, 50, 100].map((presetQty) => {
+                        const isQtyActive = (quantities[crop.id] ?? 20) === presetQty;
+                        return (
+                          <button
+                            key={presetQty}
+                            type="button"
+                            onClick={() => updateCropQuantity(crop.id, presetQty)}
+                            className={`min-h-[44px] px-3 py-1.5 text-sm font-bold border-2 transition-all cursor-pointer ${
+                              isQtyActive
+                                ? 'bg-primary text-primary-fg border-neutral-ink shadow-hard'
+                                : 'bg-neutral-bg text-neutral-ink border-neutral-ink hover:bg-neutral-surface'
+                            }`}
+                          >
+                            {presetQty} {currentLang === 'mr' ? 'क्विंटल' : currentLang === 'hi' ? 'क्विंटल' : 'qtl'}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Stepper for Custom Quantities */}
+                    <div className="flex items-center gap-3 pt-1">
+                      <span className="text-sm font-semibold text-neutral-muted">
+                        {currentLang === 'mr' ? 'प्रमाण बदला' : currentLang === 'hi' ? 'मात्रा बदलें' : 'Adjust batch'}:
+                      </span>
+                      <div className="inline-flex items-center border-2 border-neutral-ink bg-neutral-surface shadow-hard">
+                        <button
+                          type="button"
+                          onClick={() => updateCropQuantity(crop.id, (quantities[crop.id] ?? 20) - 5)}
+                          disabled={(quantities[crop.id] ?? 20) <= 5}
+                          className="w-11 h-11 flex items-center justify-center bg-neutral-bg hover:bg-neutral-surface disabled:opacity-40 disabled:cursor-not-allowed border-r-2 border-neutral-ink text-neutral-ink font-black cursor-pointer"
+                          aria-label="Decrease quantity"
+                        >
+                          <Minus className="w-4 h-4 stroke-[3]" />
+                        </button>
+
+                        <div className="px-3 min-w-[130px] text-center font-black text-sm text-neutral-ink">
+                          {quantities[crop.id] ?? 20} {currentLang === 'mr' ? 'क्विंटल' : currentLang === 'hi' ? 'क्विंटल' : 'qtl'}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => updateCropQuantity(crop.id, (quantities[crop.id] ?? 20) + 5)}
+                          className="w-11 h-11 flex items-center justify-center bg-neutral-bg hover:bg-neutral-surface border-l-2 border-neutral-ink text-neutral-ink font-black cursor-pointer"
+                          aria-label="Increase quantity"
                         >
                           <Plus className="w-4 h-4 stroke-[3]" />
                         </button>

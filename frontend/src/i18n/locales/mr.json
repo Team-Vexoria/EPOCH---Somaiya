@@ -60,7 +60,14 @@
     "shelfLifeGood": "ताजा माल: {{days}} दिवस टिकवण क्षमता शिल्लक.",
     "freshnessLevel": "ताजेपणा प्रमाण",
     "clickToSetHarvest": "काढणी तारीख नोंदवण्यासाठी हे पीक निवडा",
-    "updateHarvestDate": "काढणी तारीख बदला"
+    "updateHarvestDate": "काढणी तारीख बदला",
+    "stockQuestion": "तुमच्याकडे किती माल (क्विंटल) आहे?",
+    "stockSubtitle": "अ‍ॅपमधील नफा व वाहतूक खर्च तुमच्या या प्रमाणावर मोजला जाईल",
+    "stockQuintals": "{{count}} क्विंटल",
+    "stockPreset10": "१० क्विंटल",
+    "stockPreset20": "२० क्विंटल",
+    "stockPreset50": "५० क्विंटल",
+    "stockPreset100": "१०० क्विंटल"
   },
   "chat": {
     "newChat": "नवीन संवाद",
@@ -202,7 +209,18 @@
     "spoilageDeduction": "वाहतूक/खराब होणारे नुकसान",
     "netInHand": "हातात मिळणारा निव्वळ भाव",
     "askAboutMandi": "या बाजारासाठी AI सल्लागारास विचारा",
-    "selectMandiPrompt": "तपशील, भावाचा कल व वाहतूक खर्च पाहण्यासाठी नकाशावरील बाजारावर क्लिक करा."
+    "selectMandiPrompt": "तपशील, भावाचा कल व वाहतूक खर्च पाहण्यासाठी नकाशावरील बाजारावर क्लिक करा.",
+    "farmerLocation": "तुम्ही येथे आहात (शेतकरी स्थान)",
+    "deviceGpsLive": "थेट डिव्हाइस स्थान (GPS)",
+    "routeToMandi": "बाजाराकडे जाणारा थेट वाहतूक मार्ग",
+    "totalTravelCost": "एकूण प्रवास / वाहतूक खर्च",
+    "totalNetProfit": "हातात मिळणारा एकूण निव्वळ नफा",
+    "yourStock": "तुमचा माल",
+    "ratePerQtl": "दर / क्विंटल",
+    "approxTransit": "~{{minutes}} मिनिटे प्रवास",
+    "readMoreBreakdown": "अधिक माहिती: भाव वजावट तपशील आणि ७ दिवसांचा आलेख",
+    "collapseBreakdown": "तपशील लपवा",
+    "extraVsDistress": "+{{extra}} स्थानिक भावापेक्षा जास्त नफा"
   },
   "fpo": {
     "title": "FPO घाऊक विक्री व वाहतूक नियोजन",

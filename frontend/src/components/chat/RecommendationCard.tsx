@@ -30,6 +30,7 @@ import {
 } from 'recharts';
 import type { Recommendation, ForecastPoint } from '../../types';
 import { formatRupee } from '../../i18n';
+import { useAppStore } from '../../store/useAppStore';
 
 interface RecommendationCardProps {
   recommendation: Recommendation;
@@ -43,10 +44,15 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const currentLang = i18n.language || 'mr';
+  const { cropQuantities } = useAppStore();
+
+  const farmerStock = recommendation.cropId && cropQuantities?.[recommendation.cropId]
+    ? cropQuantities[recommendation.cropId]
+    : 20;
 
   const [showDetailedGraphs, setShowDetailedGraphs] = useState(false);
   const [showWhyAdvice, setShowWhyAdvice] = useState(false);
-  const [selectedLotSize, setSelectedLotSize] = useState<number>(20); // 20 quintals standard lot
+  const [selectedLotSize, setSelectedLotSize] = useState<number>(farmerStock);
 
   const isHold = recommendation.decision === 'HOLD';
   const localizedBestMandi =

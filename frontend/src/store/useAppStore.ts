@@ -13,6 +13,7 @@ interface AppState {
   language: Language;
   crops: CropId[];
   harvestDaysAgo: Record<CropId, number>;
+  cropQuantities: Record<CropId, number>;
   onboardingComplete: boolean;
 
   // Conversations
@@ -26,6 +27,8 @@ interface AppState {
   setCrops: (crops: CropId[]) => void;
   setHarvestDaysAgo: (cropId: CropId, daysAgo: number) => void;
   setAllHarvestDaysAgo: (record: Record<CropId, number>) => void;
+  setCropQuantity: (cropId: CropId, quantity: number) => void;
+  setAllCropQuantities: (record: Record<CropId, number>) => void;
   completeOnboarding: () => void;
 
   createConversation: (initialTitle?: string) => string;
@@ -59,6 +62,11 @@ export const useAppStore = create<AppState>()(
         tomato: 0,
         soybean: 0,
       },
+      cropQuantities: {
+        onion: 20,
+        tomato: 15,
+        soybean: 30,
+      },
       onboardingComplete: false,
 
       conversations: [],
@@ -78,6 +86,11 @@ export const useAppStore = create<AppState>()(
             onion: 0,
             tomato: 0,
             soybean: 0,
+          },
+          cropQuantities: {
+            onion: 20,
+            tomato: 15,
+            soybean: 30,
           },
           activeConversationId: null,
         });
@@ -103,6 +116,19 @@ export const useAppStore = create<AppState>()(
 
       setAllHarvestDaysAgo: (record: Record<CropId, number>) => {
         set({ harvestDaysAgo: record });
+      },
+
+      setCropQuantity: (cropId: CropId, quantity: number) => {
+        set((state) => ({
+          cropQuantities: {
+            ...state.cropQuantities,
+            [cropId]: Math.max(1, quantity),
+          },
+        }));
+      },
+
+      setAllCropQuantities: (record: Record<CropId, number>) => {
+        set({ cropQuantities: record });
       },
 
       completeOnboarding: () => {

@@ -96,10 +96,10 @@ export const NetReturnCalculator: React.FC<NetReturnCalculatorProps> = ({
   const { t, i18n } = useTranslation();
   const currentLang = i18n.language || 'mr';
 
-  const { harvestDaysAgo } = useAppStore();
+  const { harvestDaysAgo, cropQuantities } = useAppStore();
   const [selectedCrop, setSelectedCrop] = useState<CropId>(initialCrop);
   const [daysHeld, setDaysHeld] = useState<number>(selectedCrop === 'tomato' ? 0 : 10);
-  const [quantityQtl, setQuantityQtl] = useState<number>(20);
+  const [quantityQtl, setQuantityQtl] = useState<number>(cropQuantities?.[initialCrop] ?? 20);
   const [distanceKm, setDistanceKm] = useState<number>(22);
 
   const daysSinceHarvest = harvestDaysAgo?.[selectedCrop] ?? 0;
@@ -113,6 +113,9 @@ export const NetReturnCalculator: React.FC<NetReturnCalculatorProps> = ({
   // When crop changes, ensure daysHeld is within range
   const handleCropChange = (c: CropId) => {
     setSelectedCrop(c);
+    if (cropQuantities?.[c]) {
+      setQuantityQtl(cropQuantities[c]);
+    }
     const newMax = CROP_PARAMS[c].maxDays;
     if (c === 'tomato') {
       setDaysHeld(0); // Default sell now for tomatoes
@@ -366,9 +369,6 @@ export const NetReturnCalculator: React.FC<NetReturnCalculatorProps> = ({
               {formatRupee(currentResult.netPerQtl)}
               <span className="text-sm text-neutral-muted font-normal"> / qtl</span>
             </div>
-            <div className="text-sm text-neutral-muted mt-1 font-semibold">
-              Gross: ₹{currentResult.grossPrice} | Freight: -₹{Math.round(currentResult.transportCost)} | Loss: -₹{Math.round(currentResult.spoilageLoss)}
-            </div>
           </div>
 
           {/* Total Lot Payout */}
@@ -378,9 +378,6 @@ export const NetReturnCalculator: React.FC<NetReturnCalculatorProps> = ({
             </div>
             <div className="text-2xl font-black text-primary mt-1">
               {formatRupee(currentResult.totalNet)}
-            </div>
-            <div className="text-sm text-neutral-muted mt-1 font-semibold">
-              Net cash deposited in bank
             </div>
           </div>
 

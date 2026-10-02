@@ -8,11 +8,16 @@ import {
   Truck,
   AlertTriangle,
   CheckCircle2,
-  Clock,
   Sparkles,
   ArrowRight,
-  Filter,
   Layers,
+  Package,
+  Plus,
+  Minus,
+  Share2,
+  ChevronDown,
+  ChevronUp,
+  Navigation,
 } from 'lucide-react';
 import {
   LineChart,
@@ -27,11 +32,15 @@ import { VILLAGES, type VillageConfig } from '../config/villages';
 import { fetchHeatmap } from '../api/client';
 import type { HeatmapResponse, HeatmapItem } from '../api/types';
 import { formatRupee } from '../i18n';
+import { useAppStore } from '../store/useAppStore';
+import type { CropId } from '../types';
 
 export const MapPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const currentLang = i18n.language || 'mr';
+
+  const { cropQuantities, setCropQuantity } = useAppStore();
 
   // Controls state
   const [selectedCrop, setSelectedCrop] = useState<string>('onion');
@@ -43,6 +52,10 @@ export const MapPage: React.FC = () => {
   const [heatmapData, setHeatmapData] = useState<HeatmapResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedMandiId, setSelectedMandiId] = useState<string>('lasalgaon');
+  const [showDetailedBreakdown, setShowDetailedBreakdown] = useState<boolean>(false);
+
+  // Farmer's stock quantity for currently selected crop
+  const currentStock = cropQuantities[selectedCrop as CropId] ?? 20;
 
   // Leaflet map refs
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -107,7 +120,7 @@ export const MapPage: React.FC = () => {
     };
   }, []);
 
-  // Update map markers and polylines whenever data or metricMode changes
+  // Update map markers and polylines whenever data or selection changes
   useEffect(() => {
     const map = mapInstanceRef.current;
     const layers = layerGroupRef.current;
@@ -115,17 +128,32 @@ export const MapPage: React.FC = () => {
 
     layers.clearLayers();
 
-    // 1. Plot Farmer's Origin Village Marker
-    const villageIcon = L.divIcon({
-      className: 'custom-leaflet-village-pin',
-      html: `
-        <div class="flex items-center gap-1.5 bg-neutral-ink text-neutral-surface border-2 border-neutral-surface px-2.5 py-1 text-sm font-bold shadow-hard select-none">
-          <span class="inline-block w-2.5 h-2.5 rounded-full bg-secondary"></span>
-          <span>${currentLang === 'mr' ? currentVillage.name_mr : currentLang === 'hi' ? currentVillage.name_hi : currentVillage.name}</span>
+    // 1. Plot Farmer's Location Pointer (Google Maps style pin with device beacon & pulse)
+    const googleMapsPointerHtml = `
+      <div class="relative flex flex-col items-center select-none" style="pointer-events: auto;">
+        <!-- Top Label Badge -->
+        <div class="mb-1 bg-neutral-ink text-neutral-surface border-2 border-neutral-surface px-2.5 py-1 text-sm font-black shadow-hard flex items-center gap-1.5 whitespace-nowrap">
+          <span class="inline-block w-2.5 h-2.5 rounded-full bg-sell animate-pulse"></span>
+          <span>${currentLang === 'mr' ? '📍 तुम्ही येथे आहात (शेतकरी)' : currentLang === 'hi' ? '📍 आप यहाँ हैं (किसान स्थान)' : '📍 You Are Here (Farmer)'}</span>
         </div>
-      `,
-      iconSize: [140, 32],
-      iconAnchor: [70, 16],
+
+        <!-- Google Maps Pin & Pulse Ring -->
+        <div class="relative flex items-center justify-center">
+          <div class="absolute w-10 h-10 rounded-full border-2 border-primary bg-primary-subtle animate-ping pointer-events-none"></div>
+          <svg width="42" height="50" viewBox="0 0 42 50" fill="none" class="relative z-10 drop-shadow">
+            <path d="M21 2C10.5 2 2 10.5 2 21C2 35 21 48 21 48C21 48 40 35 40 21C40 10.5 31.5 2 21 2Z" fill="#EA4335" stroke="#1C1917" stroke-width="2.5"/>
+            <circle cx="21" cy="20" r="10" fill="#FFFFFF" stroke="#1C1917" stroke-width="1.5"/>
+            <circle cx="21" cy="20" r="5" fill="#1A73E8"/>
+          </svg>
+        </div>
+      </div>
+    `;
+
+    const villageIcon = L.divIcon({
+      className: 'custom-google-maps-pointer',
+      html: googleMapsPointerHtml,
+      iconSize: [260, 84],
+      iconAnchor: [130, 84],
     });
 
     const villageMarker = L.marker([currentVillage.lat, currentVillage.lng], {
@@ -134,7 +162,7 @@ export const MapPage: React.FC = () => {
     }).addTo(layers);
 
     villageMarker.bindTooltip(
-      `<strong>${t('map.villageSelect')}:</strong> ${
+      `<strong>${t('map.farmerLocation')}:</strong> ${
         currentLang === 'mr' ? currentVillage.name_mr : currentLang === 'hi' ? currentVillage.name_hi : currentVillage.name
       } (${currentVillage.taluka})`,
       { direction: 'top', offset: [0, -10] }
@@ -149,32 +177,53 @@ export const MapPage: React.FC = () => {
 
     const topRankedIds = new Set(sorted.slice(0, 3).map((m) => m.mandiId));
 
-    // 3. Draw connection lines to top 3 mandis
-    sorted.slice(0, 3).forEach((mandi, idx) => {
-      const isTop1 = idx === 0;
-      const polyline = L.polyline(
+    // 3. Draw direct connection lines:
+    // Faint connection lines to top 3 mandis for context
+    sorted.slice(0, 3).forEach((mandi) => {
+      if (mandi.mandiId === selectedMandiId) return; // Selected mandi gets the bold animated route below
+      L.polyline(
         [
           [currentVillage.lat, currentVillage.lng],
           [mandi.lat, mandi.lng],
         ],
         {
-          color: isTop1 ? 'var(--color-sell, green)' : 'var(--color-hold, darkgoldenrod)',
-          weight: isTop1 ? 4 : 2.5,
-          dashArray: isTop1 ? undefined : '5, 5',
-          opacity: 0.85,
+          color: 'var(--color-neutral-muted, gray)',
+          weight: 2,
+          dashArray: '5, 7',
+          opacity: 0.45,
+        }
+      ).addTo(layers);
+    });
+
+    // 4. Draw Prominent Animated Route Line connecting Farmer to Selected Mandi
+    const activeMandi = heatmapData.items.find((m) => m.mandiId === selectedMandiId);
+    if (activeMandi) {
+      const activeRouteLine = L.polyline(
+        [
+          [currentVillage.lat, currentVillage.lng],
+          [activeMandi.lat, activeMandi.lng],
+        ],
+        {
+          className: 'leaflet-animated-route-line',
+          color: 'var(--color-sell, #1E6B2D)', // design-check-ignore: Leaflet polyline stroke token
+          weight: 6,
+          opacity: 0.95,
+          lineCap: 'round',
         }
       ).addTo(layers);
 
-      const mandiLabel = currentLang === 'mr' ? mandi.name_mr : currentLang === 'hi' ? mandi.name_hi : mandi.name;
-      const metricVal = metricMode === 'net' ? mandi.netReturn : mandi.forecastPrice;
+      const mandiLabel = currentLang === 'mr' ? activeMandi.name_mr : currentLang === 'hi' ? activeMandi.name_hi : activeMandi.name;
+      const totalFreight = activeMandi.transportCost * currentStock;
 
-      polyline.bindTooltip(
-        `#${idx + 1}: ${mandiLabel} (${mandi.distanceKm} km) &rarr; ${formatRupee(metricVal)}/qtl`,
-        { sticky: true }
+      activeRouteLine.bindTooltip(
+        `<strong>🚛 ${activeMandi.distanceKm} km</strong> &bull; ${formatRupee(totalFreight)} ${
+          currentLang === 'mr' ? 'वाहतूक खर्च' : 'Travel Cost'
+        } (${mandiLabel})`,
+        { permanent: false, sticky: true }
       );
-    });
+    }
 
-    // 4. Plot markers for all mandis
+    // 5. Plot markers for all mandis
     sorted.forEach((item, index) => {
       const isSelected = item.mandiId === selectedMandiId;
       const isTop3 = topRankedIds.has(item.mandiId);
@@ -183,15 +232,12 @@ export const MapPage: React.FC = () => {
       const metricValue = metricMode === 'net' ? item.netReturn : item.forecastPrice;
       const localizedName = currentLang === 'mr' ? item.name_mr : currentLang === 'hi' ? item.name_hi : item.name;
 
-      // Color tier: top 3 green, middle amber, bottom red
+      // Color tier
       let badgeBg = 'bg-sell text-sell-fg';
-      let borderTone = 'border-sell';
       if (index >= 3 && index < 9) {
         badgeBg = 'bg-hold text-hold-fg';
-        borderTone = 'border-hold';
       } else if (index >= 9) {
         badgeBg = 'bg-risk text-risk-fg';
-        borderTone = 'border-risk';
       }
 
       const activeRing = isSelected ? 'ring-4 ring-neutral-ink scale-110 z-50' : 'hover:scale-105';
@@ -220,12 +266,22 @@ export const MapPage: React.FC = () => {
         setSelectedMandiId(item.mandiId);
       });
     });
-  }, [heatmapData, metricMode, selectedMandiId, selectedVillageId, currentLang, t]);
+  }, [heatmapData, metricMode, selectedMandiId, selectedVillageId, currentLang, t, currentStock]);
 
   // Selected mandi detail object
   const selectedMandi: HeatmapItem | undefined = heatmapData?.items.find(
     (m) => m.mandiId === selectedMandiId
   );
+
+  // Financial metrics calculated dynamically for the farmer's batch quantity
+  const totalTravelCost = selectedMandi ? selectedMandi.transportCost * currentStock : 0;
+  const totalNetProfit = selectedMandi ? selectedMandi.netReturn * currentStock : 0;
+  const totalGrossPrice = selectedMandi ? selectedMandi.forecastPrice * currentStock : 0;
+  const totalSpoilageLoss = selectedMandi ? selectedMandi.spoilageLoss * currentStock : 0;
+  const approxTransitMinutes = selectedMandi ? Math.round(selectedMandi.distanceKm * 2.2) : 0;
+  // Local distress sale estimate (usually 18% lower at farm-gate)
+  const baselineDistressNet = selectedMandi ? Math.round(selectedMandi.forecastPrice * 0.82) * currentStock : 0;
+  const extraGainVsLocal = Math.max(0, totalNetProfit - baselineDistressNet);
 
   // Sparkline data array for Recharts
   const sparklineChartData = selectedMandi?.sparkline.map((price, idx) => ({
@@ -237,12 +293,46 @@ export const MapPage: React.FC = () => {
     if (!selectedMandi) return;
     const cropName = CROPS[selectedCrop]?.[`name_${currentLang}` as 'name_mr'] || selectedCrop;
     const mandiName = currentLang === 'mr' ? selectedMandi.name_mr : currentLang === 'hi' ? selectedMandi.name_hi : selectedMandi.name;
-    const query = `${cropName}, 20 क्विंटल, ${mandiName}, ${selectedVillageId}`;
-    navigate('/assistant', { state: { initialPrompt: query } });
+    const query = `${cropName}, ${currentStock} क्विंटल, ${mandiName}, ${selectedVillageId}`;
+    navigate('/chat', { state: { initialPrompt: query } });
+  };
+
+  const handleWhatsAppShare = () => {
+    if (!selectedMandi) return;
+    const cropName = CROPS[selectedCrop]?.[`name_${currentLang}` as 'name_mr'] || selectedCrop;
+    const mandiName = currentLang === 'mr' ? selectedMandi.name_mr : currentLang === 'hi' ? selectedMandi.name_hi : selectedMandi.name;
+    const originName = currentLang === 'mr' ? currentVillage.name_mr : currentLang === 'hi' ? currentVillage.name_hi : currentVillage.name;
+
+    const message =
+      `🌾 *Sell Smart Mandi Route & Profit Advisory*\n\n` +
+      `📍 *Route:* ${originName} ➡️ *${mandiName}* (${selectedMandi.distanceKm} km, ~${approxTransitMinutes} mins)\n` +
+      `📦 *Produce Batch:* ${cropName} (${currentStock} Quintals)\n` +
+      `🚚 *Travelling Cost:* ${formatRupee(totalTravelCost)} (₹${selectedMandi.transportCost}/qtl)\n` +
+      `💰 *Net Cash In Pocket:* ${formatRupee(totalNetProfit)} (₹${selectedMandi.netReturn}/qtl net)\n` +
+      `📈 *Extra Profit:* +${formatRupee(extraGainVsLocal)} vs local sale\n\n` +
+      `Nashik District Agriculture Advisory`;
+
+    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
   };
 
   return (
     <div className="flex flex-col flex-1 bg-neutral-bg min-h-[calc(100vh-80px)]">
+      {/* Route Animation Stylesheet */}
+      <style>{`
+        @keyframes routeFlow {
+          0% {
+            stroke-dashoffset: 40;
+          }
+          100% {
+            stroke-dashoffset: 0;
+          }
+        }
+        .leaflet-animated-route-line {
+          stroke-dasharray: 12, 10;
+          animation: routeFlow 0.9s linear infinite !important;
+        }
+      `}</style>
+
       {/* Top Banner / Controls Bar */}
       <div className="bg-neutral-surface border-b-2 border-neutral-border px-4 py-4 md:px-8">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -257,7 +347,7 @@ export const MapPage: React.FC = () => {
           </div>
 
           {/* Quick Stats Pill */}
-          <div className="inline-flex items-center gap-3 bg-primary-subtle border-2 border-primary px-3.5 py-2">
+          <div className="inline-flex items-center gap-3 bg-primary-subtle border-2 border-primary px-3.5 py-2 shadow-hard">
             <span className="w-3 h-3 rounded-full bg-sell animate-pulse"></span>
             <span className="text-sm font-bold text-neutral-ink">
               14 {currentLang === 'mr' ? 'बाजार समित्या सक्रिय' : currentLang === 'hi' ? 'मंडियां सक्रिय' : 'APMC Mandis Active'}
@@ -389,8 +479,9 @@ export const MapPage: React.FC = () => {
               </span>
             </div>
 
-            <div className="text-neutral-muted text-sm italic">
-              {t('map.clickForDetails')}
+            <div className="text-neutral-muted text-sm font-bold flex items-center gap-1.5">
+              <Navigation className="w-4 h-4 text-primary" />
+              <span>{t('map.clickForDetails')}</span>
             </div>
           </div>
 
@@ -402,7 +493,7 @@ export const MapPage: React.FC = () => {
                 <div className="bg-neutral-surface border-2 border-neutral-ink p-4 shadow-hard flex items-center gap-3">
                   <div className="w-5 h-5 border-2 border-primary border-t-transparent animate-spin rounded-full"></div>
                   <span className="font-bold text-neutral-ink text-base">
-                    {currentLang === 'mr' ? 'नकाशा माहिती अपडेट होत आहे...' : currentLang === 'hi' ? 'नक्शा लोड हो रहा है...' : 'Updating mandi routes...'}
+                    {currentLang === 'mr' ? 'नकाशा माहिती लोड होत आहे...' : currentLang === 'hi' ? 'नक्शा लोड हो रहा है...' : 'Updating mandi routes...'}
                   </span>
                 </div>
               </div>
@@ -411,25 +502,27 @@ export const MapPage: React.FC = () => {
 
           {/* Farmer Route Guide Footer */}
           <div className="p-3 bg-primary-subtle border-t-2 border-neutral-border text-sm flex items-center justify-between">
-            <div className="flex items-center gap-2 text-neutral-ink font-medium">
-              <span className="font-bold text-primary">🟢 Top 3 Direct Transit:</span>
+            <div className="flex items-center gap-2 text-neutral-ink font-semibold">
+              <span className="font-bold text-primary">🟢 {t('map.routeToMandi')}:</span>
               <span>
                 {currentLang === 'mr'
-                  ? 'हिरवी व पिवळी रेषा तुमच्या गावातून सर्वाधिक नफा देणाऱ्या सर्वोत्तम बाजारांकडे जाते.'
-                  : 'Colored lines represent optimal transit corridors from your village to highest net APMC mandis.'}
+                  ? 'हिरवी वाहती रेषा तुमच्या शेतापासून निवडलेल्या बाजार समितीकडे जाणारा थेट मार्ग दर्शवते.'
+                  : currentLang === 'hi'
+                  ? 'हरी चलती रेखा आपके स्थान से चयनित मंडी तक सीधा परिवहन मार्ग दर्शाती है।'
+                  : 'Animated green line shows direct transit route from your location to selected mandi.'}
               </span>
             </div>
           </div>
         </div>
 
-        {/* Side Panel: Selected Mandi Breakdown */}
+        {/* Side Panel: Selected Mandi Clean Agricultural Summary */}
         <div className="w-full lg:w-96 flex flex-col gap-4">
           {selectedMandi ? (
-            <div className="bg-neutral-surface border-2 border-neutral-border p-5 shadow-hard flex flex-col justify-between flex-1">
-              <div>
+            <div className="bg-neutral-surface border-2 border-neutral-border p-5 shadow-hard flex flex-col justify-between flex-1 gap-4">
+              <div className="space-y-4">
                 {/* Mandi Title Header */}
                 <div className="border-b-2 border-neutral-border pb-3">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between flex-wrap gap-1">
                     <span className="bg-primary-subtle border border-primary text-primary px-2.5 py-0.5 text-sm font-bold uppercase tracking-wider">
                       {selectedMandi.taluka} Taluka
                     </span>
@@ -446,144 +539,205 @@ export const MapPage: React.FC = () => {
                       ? selectedMandi.name_hi
                       : selectedMandi.name}
                   </h2>
+
+                  <div className="text-sm font-semibold text-neutral-muted mt-0.5">
+                    {t('map.approxTransit', { minutes: approxTransitMinutes })}
+                  </div>
                 </div>
 
-                {/* Big Metric Display */}
-                <div className="my-4 bg-neutral-bg border-2 border-neutral-border p-4">
-                  <div className="text-sm font-bold text-neutral-muted">
-                    {metricMode === 'net' ? t('map.netInHand') : t('map.forecastMetric')}
+                {/* Farmer Batch Stock Selector Bar */}
+                <div className="p-3 bg-neutral-bg border-2 border-neutral-border flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Package className="w-5 h-5 text-primary shrink-0" />
+                    <div>
+                      <div className="text-sm font-extrabold text-neutral-ink">
+                        {t('map.yourStock')}: {currentStock} {currentLang === 'mr' ? 'क्विंटल' : currentLang === 'hi' ? 'क्विंटल' : 'qtl'}
+                      </div>
+                      <div className="text-sm font-medium text-neutral-muted">
+                        {CROPS[selectedCrop]?.[`name_${currentLang}` as 'name_mr'] || selectedCrop}
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-baseline gap-2 mt-1">
-                    <span className="text-3xl font-black text-sell">
-                      {formatRupee(metricMode === 'net' ? selectedMandi.netReturn : selectedMandi.forecastPrice)}
+
+                  <div className="inline-flex items-center border-2 border-neutral-ink bg-neutral-surface shadow-hard">
+                    <button
+                      type="button"
+                      onClick={() => setCropQuantity(selectedCrop as CropId, Math.max(1, currentStock - 5))}
+                      disabled={currentStock <= 5}
+                      className="w-9 h-9 flex items-center justify-center bg-neutral-bg hover:bg-neutral-surface disabled:opacity-40 disabled:cursor-not-allowed border-r-2 border-neutral-ink font-black text-neutral-ink cursor-pointer"
+                      aria-label="Decrease stock"
+                    >
+                      <Minus className="w-4 h-4 stroke-[3]" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCropQuantity(selectedCrop as CropId, currentStock + 5)}
+                      className="w-9 h-9 flex items-center justify-center bg-neutral-bg hover:bg-neutral-surface font-black text-neutral-ink cursor-pointer"
+                      aria-label="Increase stock"
+                    >
+                      <Plus className="w-4 h-4 stroke-[3]" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* KPI Card 1: Travelling Cost */}
+                <div className="p-4 bg-neutral-surface border-2 border-neutral-ink shadow-hard">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-bold text-neutral-muted flex items-center gap-1.5">
+                      <Truck className="w-4 h-4 text-secondary" />
+                      {t('map.totalTravelCost')}
                     </span>
-                    <span className="text-base text-neutral-muted font-bold">/ quintal</span>
-                  </div>
-                  <div className="text-sm text-neutral-muted mt-1">
-                    {metricMode === 'net'
-                      ? `${t('map.forecastMetric')}: ${formatRupee(selectedMandi.forecastPrice)}`
-                      : `${t('map.netMetric')}: ${formatRupee(selectedMandi.netReturn)}`}
-                  </div>
-                </div>
-
-                {/* Financial Ledger (Net of Freight & Spoilage) */}
-                <div className="border-2 border-neutral-ink bg-neutral-surface p-3.5 space-y-2.5 mb-4 shadow-hard">
-                  <div className="text-sm font-black text-neutral-ink border-b-2 border-neutral-ink pb-1.5 flex items-center justify-between">
-                    <span>{currentLang === 'mr' ? 'खर्च वजावट तपशील' : 'Freight & Spoilage Breakdown'}</span>
-                    <span className="text-sm font-semibold text-neutral-muted">Per Quintal Basis</span>
-                  </div>
-
-                  {/* 1. APMC Forecast Price */}
-                  <div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-neutral-muted flex items-center gap-1 font-bold">
-                        <TrendingUp className="w-4 h-4 text-sell" /> {t('map.forecastMetric')}
-                      </span>
-                      <span className="font-extrabold text-neutral-ink text-base">+{formatRupee(selectedMandi.forecastPrice)}</span>
-                    </div>
-                    {selectedMandi.priceExplanation && (
-                      <div className="text-sm text-neutral-muted pl-5 font-semibold mt-0.5">
-                        ↳ {selectedMandi.priceExplanation}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* 2. Transport Freight */}
-                  <div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-neutral-muted flex items-center gap-1 font-bold">
-                        <Truck className="w-4 h-4 text-secondary" /> {t('map.transportDeduction')} ({selectedMandi.distanceKm} km)
-                      </span>
-                      <span className="font-extrabold text-risk text-base">-{formatRupee(selectedMandi.transportCost)}</span>
-                    </div>
-                    {selectedMandi.transportExplanation && (
-                      <div className="text-sm text-neutral-muted pl-5 font-semibold mt-0.5">
-                        ↳ {selectedMandi.transportExplanation}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* 3. Spoilage Loss */}
-                  <div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-neutral-muted flex items-center gap-1 font-bold">
-                        <AlertTriangle className="w-4 h-4 text-hold" /> {t('map.spoilageDeduction')}
-                      </span>
-                      <span className="font-extrabold text-risk text-base">-{formatRupee(selectedMandi.spoilageLoss)}</span>
-                    </div>
-                    {selectedMandi.spoilageExplanation && (
-                      <div className="text-sm text-neutral-muted pl-5 font-semibold mt-0.5">
-                        ↳ {selectedMandi.spoilageExplanation}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* 4. Final Net Realized */}
-                  <div className="flex justify-between text-base font-black border-t-2 border-neutral-ink pt-2 text-sell">
-                    <span>{t('map.netInHand')}</span>
-                    <span className="text-lg">={formatRupee(selectedMandi.netReturn)}/qtl</span>
-                  </div>
-                </div>
-
-                {/* 7-Day Trend Sparkline Chart */}
-                <div className="mb-4">
-                  <div className="flex items-center justify-between text-sm font-bold text-neutral-ink mb-1.5">
-                    <span className="flex items-center gap-1">
-                      <TrendingUp className="w-4 h-4 text-primary" />
-                      {currentLang === 'mr' ? '७ दिवसांचा भावाचा कल' : '7-Day Price Trend (APMC)'}
-                    </span>
-                    <span className="text-neutral-muted text-sm">
-                      {selectedMandi.arrivalsTodayQuintals.toLocaleString('en-IN')} {t('map.quintal')} {t('map.arrivals')}
+                    <span className="text-sm font-bold px-2 py-0.5 border border-neutral-ink bg-neutral-bg text-neutral-ink">
+                      {formatRupee(selectedMandi.transportCost)}/qtl
                     </span>
                   </div>
 
-                  <div className="w-full h-24 bg-neutral-bg border border-neutral-border p-1">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={sparklineChartData}>
-                        <XAxis dataKey="day" hide />
-                        <YAxis domain={['dataMin - 50', 'dataMax + 50']} hide />
-                        <Tooltip
-                          formatter={(val: number) => [`₹${val}`, 'Price']}
-                          contentStyle={{
-                            backgroundColor: 'var(--color-neutral-surface, white)',
-                            border: '2px solid var(--color-neutral-ink, black)',
-                            borderRadius: 0,
-                            fontSize: '14px',
-                          }}
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="price"
-                          stroke="var(--color-primary, #1E6B2D)"
-                          strokeWidth={2.5}
-                          dot={{ r: 3, fill: 'var(--color-primary, #1E6B2D)' }}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
+                  <div className="mt-1 text-2xl md:text-3xl font-black text-neutral-ink">
+                    {formatRupee(totalTravelCost)}
+                  </div>
+
+                  <div className="text-sm text-neutral-muted font-medium mt-1">
+                    {selectedMandi.distanceKm} km transit ({currentStock} {t('map.quintal')})
                   </div>
                 </div>
 
-                {/* Confidence Chip */}
-                <div className="flex items-center gap-2 p-2 bg-neutral-bg border border-neutral-border mb-4">
-                  <CheckCircle2 className="w-4 h-4 text-sell shrink-0" />
-                  <span className="text-sm font-medium text-neutral-ink">
-                    <strong>{selectedMandi.confidence} Confidence:</strong>{' '}
-                    {selectedMandi.confidence === 'HIGH'
-                      ? currentLang === 'mr' ? 'उच्च आवक व स्थिर लिलाव' : 'High volume APMC with consistent arrivals'
-                      : currentLang === 'mr' ? 'मध्यम लिलाव चढउतार' : 'Moderate price volatility'}
-                  </span>
+                {/* KPI Card 2: Net In Pocket Profit */}
+                <div className="p-4 bg-sell-bg border-2 border-sell shadow-hard">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-black text-sell flex items-center gap-1.5">
+                      <TrendingUp className="w-4 h-4" />
+                      {t('map.totalNetProfit')}
+                    </span>
+                    <span className="text-sm font-bold px-2 py-0.5 border border-sell bg-neutral-surface text-sell">
+                      {formatRupee(selectedMandi.netReturn)}/qtl net
+                    </span>
+                  </div>
+
+                  <div className="mt-1 text-2xl md:text-3xl font-black text-sell">
+                    {formatRupee(totalNetProfit)}
+                  </div>
+
+                  <div className="text-sm font-bold text-sell mt-1">
+                    {t('map.extraVsDistress', { extra: formatRupee(extraGainVsLocal) })}
+                  </div>
+                </div>
+
+                {/* Progressive Disclosure Toggle ("Read More" for Details & Graph) */}
+                <div className="border-t border-neutral-border pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowDetailedBreakdown((prev) => !prev)}
+                    className="w-full min-h-[44px] py-2 px-3 bg-neutral-bg hover:bg-neutral-surface border-2 border-neutral-ink font-bold text-sm text-neutral-ink flex items-center justify-between transition-colors cursor-pointer shadow-hard"
+                  >
+                    <span>
+                      {showDetailedBreakdown
+                        ? t('map.collapseBreakdown')
+                        : t('map.readMoreBreakdown')}
+                    </span>
+                    {showDetailedBreakdown ? (
+                      <ChevronUp className="w-4 h-4" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4" />
+                    )}
+                  </button>
+
+                  {/* Collapsible Content */}
+                  {showDetailedBreakdown && (
+                    <div className="mt-3 space-y-3 bg-neutral-surface border-2 border-neutral-ink p-3 shadow-hard">
+                      {/* Price Breakdown Ledger */}
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between font-bold text-neutral-ink">
+                          <span>{t('map.forecastMetric')}:</span>
+                          <span>+{formatRupee(selectedMandi.forecastPrice)}/qtl ({formatRupee(totalGrossPrice)})</span>
+                        </div>
+                        <div className="flex justify-between font-bold text-risk">
+                          <span>{t('map.transportDeduction')}:</span>
+                          <span>-{formatRupee(selectedMandi.transportCost)}/qtl (-{formatRupee(totalTravelCost)})</span>
+                        </div>
+                        <div className="flex justify-between font-bold text-risk">
+                          <span>{t('map.spoilageDeduction')}:</span>
+                          <span>-{formatRupee(selectedMandi.spoilageLoss)}/qtl (-{formatRupee(totalSpoilageLoss)})</span>
+                        </div>
+                        <div className="flex justify-between font-black text-base border-t-2 border-neutral-ink pt-1.5 text-sell">
+                          <span>{t('map.netInHand')}:</span>
+                          <span>={formatRupee(selectedMandi.netReturn)}/qtl ({formatRupee(totalNetProfit)})</span>
+                        </div>
+                      </div>
+
+                      {/* 7-Day Trend Sparkline Chart */}
+                      <div className="pt-2 border-t border-neutral-border">
+                        <div className="flex items-center justify-between text-sm font-bold text-neutral-ink mb-1.5">
+                          <span className="flex items-center gap-1">
+                            <TrendingUp className="w-4 h-4 text-primary" />
+                            {currentLang === 'mr' ? '७ दिवसांचा भावाचा कल' : '7-Day Price Trend (APMC)'}
+                          </span>
+                          <span className="text-neutral-muted text-sm font-semibold">
+                            {selectedMandi.arrivalsTodayQuintals.toLocaleString('en-IN')} {t('map.quintal')}
+                          </span>
+                        </div>
+
+                        <div className="w-full h-24 bg-neutral-bg border border-neutral-border p-1">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={sparklineChartData}>
+                              <XAxis dataKey="day" hide />
+                              <YAxis domain={['dataMin - 50', 'dataMax + 50']} hide />
+                              <Tooltip
+                                formatter={(val: number) => [`₹${val}`, 'Price']}
+                                contentStyle={{
+                                  backgroundColor: 'var(--color-neutral-surface, white)',
+                                  border: '2px solid var(--color-neutral-ink, black)',
+                                  borderRadius: 0,
+                                  fontSize: '14px',
+                                }}
+                              />
+                              <Line
+                                type="monotone"
+                                dataKey="price"
+                                stroke="var(--color-primary, #1E6B2D)"
+                                strokeWidth={2.5}
+                                dot={{ r: 3, fill: 'var(--color-primary, #1E6B2D)' }}
+                              />
+                            </LineChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+
+                      {/* Confidence Tag */}
+                      <div className="flex items-center gap-2 p-2 bg-neutral-bg border border-neutral-border text-sm font-medium text-neutral-ink">
+                        <CheckCircle2 className="w-4 h-4 text-sell shrink-0" />
+                        <span>
+                          <strong>{selectedMandi.confidence} Confidence:</strong>{' '}
+                          {selectedMandi.confidence === 'HIGH'
+                            ? currentLang === 'mr' ? 'उच्च आवक व स्थिर लिलाव' : 'High volume APMC with consistent arrivals'
+                            : currentLang === 'mr' ? 'मध्यम लिलाव चढउतार' : 'Moderate price volatility'}
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* Action Button: Consult Assistant */}
-              <button
-                onClick={handleAskAssistant}
-                className="w-full bg-primary hover:bg-primary-hover text-primary-fg font-extrabold py-3 px-4 border-2 border-neutral-ink shadow-hard flex items-center justify-center gap-2 text-base transition-colors"
-              >
-                <Sparkles className="w-5 h-5" />
-                <span>{t('map.askAboutMandi')}</span>
-                <ArrowRight className="w-5 h-5" />
-              </button>
+              {/* Action Buttons: Consult Assistant + WhatsApp */}
+              <div className="space-y-2 pt-2">
+                <button
+                  type="button"
+                  onClick={handleAskAssistant}
+                  className="w-full min-h-[48px] bg-primary hover:bg-primary-hover text-primary-fg font-extrabold py-3 px-4 border-2 border-neutral-ink shadow-hard flex items-center justify-center gap-2 text-base transition-colors cursor-pointer"
+                >
+                  <Sparkles className="w-5 h-5" />
+                  <span>{t('map.askAboutMandi')}</span>
+                  <ArrowRight className="w-5 h-5" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleWhatsAppShare}
+                  className="w-full min-h-[44px] bg-sell-bg hover:bg-sell-subtle text-sell font-extrabold py-2.5 px-4 border-2 border-sell shadow-hard flex items-center justify-center gap-2 text-sm transition-colors cursor-pointer"
+                >
+                  <Share2 className="w-4 h-4" />
+                  <span>{currentLang === 'mr' ? 'WhatsApp वर वाहतूक व नफा पाठवा' : currentLang === 'hi' ? 'WhatsApp पर शेयर करें' : 'Share Route & Profit on WhatsApp'}</span>
+                </button>
+              </div>
             </div>
           ) : (
             <div className="bg-neutral-surface border-2 border-neutral-border p-6 shadow-hard flex items-center justify-center text-center text-neutral-muted">
@@ -591,7 +745,7 @@ export const MapPage: React.FC = () => {
             </div>
           )}
 
-          {/* Quick Comparison Ledger of Top 3 Mandis */}
+          {/* Top 3 Mandis from Your Village */}
           {heatmapData && (
             <div className="bg-neutral-surface border-2 border-neutral-border p-4 shadow-hard">
               <div className="text-sm font-extrabold text-neutral-ink uppercase tracking-wider mb-2 flex items-center gap-1.5">
@@ -606,26 +760,26 @@ export const MapPage: React.FC = () => {
                     <div
                       key={m.mandiId}
                       onClick={() => setSelectedMandiId(m.mandiId)}
-                      className={`cursor-pointer p-2 border-2 transition-all flex items-center justify-between text-sm ${
+                      className={`cursor-pointer p-2.5 border-2 transition-all flex items-center justify-between text-sm ${
                         selectedMandiId === m.mandiId
                           ? 'border-neutral-ink bg-neutral-bg shadow-hard'
                           : 'border-neutral-border bg-neutral-surface hover:border-neutral-muted'
                       }`}
                     >
                       <div className="flex items-center gap-2">
-                        <span className="w-5 h-5 rounded-full bg-neutral-ink text-neutral-surface font-black text-xs flex items-center justify-center">
+                        <span className="w-6 h-6 rounded-full bg-neutral-ink text-neutral-surface font-black text-sm flex items-center justify-center">
                           {idx + 1}
                         </span>
                         <div>
                           <div className="font-bold text-neutral-ink">
                             {currentLang === 'mr' ? m.name_mr : currentLang === 'hi' ? m.name_hi : m.name}
                           </div>
-                          <div className="text-xs text-neutral-muted">{m.distanceKm} km away</div>
+                          <div className="text-sm text-neutral-muted font-medium">{m.distanceKm} km away</div>
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="font-black text-sell text-base">{formatRupee(m.netReturn)}</div>
-                        <div className="text-xs text-neutral-muted">net/qtl</div>
+                        <div className="font-black text-sell text-base">{formatRupee(m.netReturn * currentStock)}</div>
+                        <div className="text-sm text-neutral-muted font-medium">{formatRupee(m.netReturn)}/qtl net</div>
                       </div>
                     </div>
                   ))}
