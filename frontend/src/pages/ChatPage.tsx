@@ -9,6 +9,7 @@ import { EmptyState } from '../components/chat/EmptyState';
 import { InputBar } from '../components/chat/InputBar';
 import { PriceAlertModal, getStoredAlerts } from '../components/chat/PriceAlertModal';
 import { NetReturnCalculator } from '../components/chat/NetReturnCalculator';
+import { WhatsAppBotModal } from '../components/chat/WhatsAppBotModal';
 import { useAppStore } from '../store/useAppStore';
 import { sendMessage } from '../services/chat';
 import type { Message, Language, Recommendation, CropId } from '../types';
@@ -301,6 +302,9 @@ export const ChatPage: React.FC = () => {
           onClose={() => setIsCalculatorOpen(false)}
         />
       )}
+
+      {/* WhatsApp AI Bot Live Modal */}
+      <WhatsAppBotModal />
     </div>
   );
 };

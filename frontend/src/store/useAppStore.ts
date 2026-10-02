@@ -20,6 +20,9 @@ interface AppState {
   conversations: Conversation[];
   activeConversationId: string | null;
 
+  // WhatsApp Modal State
+  isWhatsAppModalOpen: boolean;
+
   // Actions
   login: (phone: string) => void;
   logout: () => void;
@@ -29,6 +32,7 @@ interface AppState {
   setAllHarvestDaysAgo: (record: Record<CropId, number>) => void;
   setCropQuantity: (cropId: CropId, quantity: number) => void;
   setAllCropQuantities: (record: Record<CropId, number>) => void;
+  setIsWhatsAppModalOpen: (open: boolean) => void;
   completeOnboarding: () => void;
 
   createConversation: (initialTitle?: string) => string;
@@ -68,9 +72,14 @@ export const useAppStore = create<AppState>()(
         soybean: 30,
       },
       onboardingComplete: false,
+      isWhatsAppModalOpen: false,
 
       conversations: [],
       activeConversationId: null,
+
+      setIsWhatsAppModalOpen: (open: boolean) => {
+        set({ isWhatsAppModalOpen: open });
+      },
 
       login: (phone: string) => {
         set({ phone, isLoggedIn: true });

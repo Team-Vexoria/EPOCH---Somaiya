@@ -16,6 +16,7 @@ import {
   Clock,
 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
+import { openWhatsAppBot } from '../../utils/openWhatsAppBot';
 import { fetchNashikWeather, type WeatherAdvisory } from '../../services/weather';
 import { CROPS } from '../../config/crops';
 import { formatRupee } from '../../i18n';
@@ -378,15 +379,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
 
         <button
           type="button"
-          onClick={() => {
-            const queryText =
-              currentLang === 'mr'
-                ? 'नमस्कार, मला नाशिक बाजार समितीमधील कांदा/टोमॅटो विक्री सल्ला हवा आहे.'
-                : currentLang === 'hi'
-                ? 'नमस्ते, मुझे नासिक मंडी में फसल बिक्री का परामर्श चाहिए।'
-                : 'Hello, I need advisory on selling onion/tomato in Nashik mandis.';
-            window.open(`https://wa.me/?text=${encodeURIComponent(queryText)}`, '_blank', 'noopener,noreferrer');
-          }}
+          onClick={() => openWhatsAppBot()}
           className="px-3.5 py-2 bg-sell hover:bg-sell/90 text-sell-fg font-black text-sm border-2 border-neutral-ink shadow-hard flex items-center gap-2 cursor-pointer transition-transform active:translate-x-0.5 active:translate-y-0.5"
         >
           <MessageCircle className="w-4 h-4" />
