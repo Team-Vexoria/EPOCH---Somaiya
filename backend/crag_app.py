@@ -251,7 +251,7 @@ re_write_prompt = ChatPromptTemplate.from_messages([
 Formulate an improved question.""")
 ])
 
-base_rewriter = re_write_prompt | llm | StrOutputParser()
+base_rewriter = re_write_prompt | llm_fast | StrOutputParser()
 
 def _rewriter_call(inputs: dict) -> str:
     key = os.environ.get("LLM_API_KEY") or os.environ.get("GROQ_API_KEY", "")
@@ -276,11 +276,11 @@ def search_web(query: str) -> list:
                 json={
                     "api_key": tavily_key,
                     "query": target_query,
-                    "max_results": 3,
+                    "max_results": 2,
                     "search_depth": "basic",
                     "include_answer": False
                 },
-                timeout=8
+                timeout=3.5
             )
             if resp.status_code == 200:
                 data = resp.json()

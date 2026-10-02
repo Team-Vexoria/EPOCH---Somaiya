@@ -96,20 +96,21 @@ export async function sendMessage({
     const data = await response.json();
     const rawText = data.answer || data.text || 'No response generated from CRAG.';
 
-    // Stream the real tokens word-by-word into the chat UI
+    // Stream tokens in fast natural chunks (sub-second UI delivery)
     const words = rawText.split(' ');
     let accumulated = '';
+    const chunkSize = 4;
 
-    for (let i = 0; i < words.length; i++) {
+    for (let i = 0; i < words.length; i += chunkSize) {
       if (signal?.aborted) {
         throw new DOMException('Aborted by user', 'AbortError');
       }
 
-      accumulated += (i === 0 ? '' : ' ') + words[i];
+      const chunk = words.slice(i, i + chunkSize).join(' ');
+      accumulated += (i === 0 ? '' : ' ') + chunk;
       onChunk(accumulated);
 
-      // Natural, crisp token delivery (16ms per word)
-      await new Promise((resolve) => setTimeout(resolve, 16));
+      await new Promise((resolve) => setTimeout(resolve, 8));
     }
 
     const recommendation: Recommendation | undefined = data.recommendation || undefined;
