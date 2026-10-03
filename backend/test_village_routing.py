@@ -115,7 +115,14 @@ def test_fastapi_endpoints():
     assert len(hm["items"]) >= 14
     print(f"  ✅ GET /api/heatmap (Niphad origin) → Top Mandi: {hm['topMandiId']} | Top Net: ₹{hm['items'][0]['netReturn']}/qtl")
 
-    # 5. FPO Plan endpoint
+    # 5. FPO Clusters list
+    res = client.get("/api/fpo/clusters")
+    assert res.status_code == 200
+    clusters = res.json()
+    assert len(clusters) >= 8
+    print(f"  ✅ GET /api/fpo/clusters → {len(clusters)} FPO clusters registered with member counts")
+
+    # 6. FPO Bulk Planning endpoint
     fpo_req = {
         "crop": "onion",
         "quantity": 500,
@@ -126,9 +133,11 @@ def test_fastapi_endpoints():
     assert res.status_code == 200
     plan = res.json()
     assert plan["totalQuantity"] == 500
+    assert plan["metricTonnes"] == 50.0
+    assert plan["totalTrucks"] == 5
     assert len(plan["allocations"]) == 3
     assert plan["extraRevenueEarned"] > 0
-    print(f"  ✅ POST /api/fpo/plan → {len(plan['allocations'])} Mandi split, Extra Revenue: +₹{plan['extraRevenueEarned']:,} ({plan['percentageGain']}%)")
+    print(f"  ✅ POST /api/fpo/plan → {plan['hubName']} (50 MT, 5 Trucks, ~25 Farmers Pooled) | Extra Revenue: +₹{plan['extraRevenueEarned']:,} ({plan['percentageGain']}%)")
 
 if __name__ == "__main__":
     test_village_resolution()

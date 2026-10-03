@@ -123,6 +123,15 @@ export interface FpoPlanRequest {
 
 export interface FpoPlanResponse {
   totalQuantity: number;
+  metricTonnes?: number;
+  totalTrucks?: number;
+  membersPooled?: number;
+  bulkFreightSavings?: number;
+  hubId?: string;
+  hubName?: string;
+  hubName_mr?: string;
+  registeredMembers?: number;
+  taluka?: string;
   totalRevenue: number;
   baselineRevenue: number; // if sold at nearest mandi today
   extraRevenueEarned: number;

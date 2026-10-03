@@ -542,6 +542,15 @@ export function generateMockFpoPlan(req: FpoPlanRequest): FpoPlanResponse {
 
   return {
     totalQuantity: qty,
+    metricTonnes: Math.round(qty / 10),
+    totalTrucks: Math.ceil(qty / 100),
+    membersPooled: Math.ceil(qty / 20),
+    bulkFreightSavings: qty * 25,
+    hubId: village.id,
+    hubName: `${village.name} Central Packhouse`,
+    hubName_mr: `${village.name_mr || village.name} संकलन केंद्र`,
+    registeredMembers: 350,
+    taluka: village.taluka || 'Nashik',
     totalRevenue,
     baselineRevenue,
     extraRevenueEarned: extraRevenue,

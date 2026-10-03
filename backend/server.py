@@ -38,6 +38,7 @@ from villages import (
     get_villages_list,
     get_mandis_list,
     generate_heatmap_data,
+    get_fpo_clusters_list,
     generate_fpo_plan_data
 )
 
@@ -594,6 +595,12 @@ def get_heatmap_endpoint(crop: str = "onion", horizonDays: int = 0, village: str
     Calculates Haversine distance, tiered road freight, modal forecast price, and spoilage decay.
     """
     return generate_heatmap_data(crop_id=crop, horizon_days=horizonDays, village_id=village)
+
+
+@app.get("/api/fpo/clusters")
+def get_fpo_clusters_endpoint():
+    """Returns registered FPO aggregation clusters across Nashik district with member sizes."""
+    return get_fpo_clusters_list()
 
 
 class FpoPlanRequestModel(BaseModel):
