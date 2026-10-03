@@ -438,7 +438,9 @@ export const FpoPage: React.FC = () => {
                 {plan.bestMandi}
               </div>
               <div className="text-sm font-medium text-neutral-muted mt-1">
-                {currentLang === 'mr' ? 'सर्वाधिक कोटा (४५%)' : 'Receives 45% volume share'}
+                {currentLang === 'mr'
+                  ? `सर्वाधिक कोटा (${plan.allocations?.[0]?.percentage || 0}%)`
+                  : `Receives ${plan.allocations?.[0]?.percentage || 0}% volume share`}
               </div>
             </div>
 
@@ -458,7 +460,7 @@ export const FpoPage: React.FC = () => {
               </div>
               <div className="text-sm font-medium text-neutral-muted mt-1">
                 {currentLang === 'mr'
-                  ? '३ बाजारांमध्ये विभागल्याने घसरण टळेल'
+                  ? `${plan.allocations?.length || 3} बाजारांमध्ये विभागल्याने घसरण टळेल`
                   : 'Multi-mandi spread mitigates gluts'}
               </div>
             </div>
@@ -688,7 +690,7 @@ export const FpoPage: React.FC = () => {
                 </div>
                 <h3 className="text-xl md:text-2xl font-black text-neutral-ink mt-2">
                   {currentLang === 'mr'
-                    ? 'एकाच बाजारात ओतणे विरुद्ध ३ बाजारांमध्ये विभागणी'
+                    ? `एकाच बाजारात ओतणे विरुद्ध ${plan.allocations?.length || 3} बाजारांमध्ये विभागणी`
                     : 'Single Mandi Dumping vs. Multi-Mandi Allocation Split'}
                 </h3>
                 <p className="text-base text-neutral-muted mt-1 max-w-3xl">
@@ -778,7 +780,9 @@ export const FpoPage: React.FC = () => {
                   <div className="flex items-center gap-2">
                     <span className="w-3.5 h-3.5 bg-sell inline-block border border-neutral-ink" />
                     <span className="font-extrabold text-neutral-ink text-base">
-                      {currentLang === 'mr' ? 'पर्याय ब: सेलस्मार्ट ३-बाजार विभागणी' : 'Scenario B: SellSmart 3-Mandi Split'}
+                      {currentLang === 'mr'
+                        ? `पर्याय ब: सेलस्मार्ट ${plan.allocations?.length || 3}-बाजार विभागणी`
+                        : `Scenario B: SellSmart ${plan.allocations?.length || 3}-Mandi Split`}
                     </span>
                   </div>
                   <span className="bg-sell text-sell-fg text-sm font-black px-2 py-0.5 border border-neutral-ink">
@@ -787,12 +791,16 @@ export const FpoPage: React.FC = () => {
                 </div>
 
                 <div className="mt-4 space-y-3">
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-neutral-muted font-bold">
+                  <div className="flex justify-between items-start gap-2 text-sm">
+                    <span className="text-neutral-muted font-bold shrink-0">
                       {currentLang === 'mr' ? 'गंतव्य बाजार' : 'Target Markets'}:
                     </span>
-                    <span className="font-bold text-neutral-ink">
-                      Lasalgaon (45%) + Pimpalgaon (35%) + Yeola (20%)
+                    <span className="font-bold text-neutral-ink text-right">
+                      {plan.allocations && plan.allocations.length > 0
+                        ? plan.allocations
+                            .map((a) => `${currentLang === 'mr' ? a.mandiName_mr : a.mandiName} (${a.percentage}%)`)
+                            .join(' + ')
+                        : 'Dynamic Split'}
                     </span>
                   </div>
 
