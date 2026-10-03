@@ -1,4 +1,4 @@
-import { MANDIS } from '../config/mandis';
+﻿import { MANDIS } from '../config/mandis';
 import { VILLAGES } from '../config/villages';
 import { CROPS } from '../config/crops';
 import type {
@@ -721,14 +721,14 @@ export function generateMockBacktest(cropId = 'onion'): BacktestResponse {
 
   // 12-week timeline comparison
   const cumulativeTimeline = [
-    { date: 'Wk 1', sellSmartNet: 2180, baselineNet: 2020 },
-    { date: 'Wk 2', sellSmartNet: 2240, baselineNet: 2060 },
-    { date: 'Wk 3', sellSmartNet: 2350, baselineNet: 2120 },
-    { date: 'Wk 4', sellSmartNet: 2410, baselineNet: 2170 },
-    { date: 'Wk 5', sellSmartNet: 2390, baselineNet: 2180 },
-    { date: 'Wk 6', sellSmartNet: 2480, baselineNet: 2210 },
-    { date: 'Wk 7', sellSmartNet: 2520, baselineNet: 2260 },
-    { date: 'Wk 8', sellSmartNet: 2490, baselineNet: 2240 },
+    { date: 'Wk 1', MohraNet: 2180, baselineNet: 2020 },
+    { date: 'Wk 2', MohraNet: 2240, baselineNet: 2060 },
+    { date: 'Wk 3', MohraNet: 2350, baselineNet: 2120 },
+    { date: 'Wk 4', MohraNet: 2410, baselineNet: 2170 },
+    { date: 'Wk 5', MohraNet: 2390, baselineNet: 2180 },
+    { date: 'Wk 6', MohraNet: 2480, baselineNet: 2210 },
+    { date: 'Wk 7', MohraNet: 2520, baselineNet: 2260 },
+    { date: 'Wk 8', MohraNet: 2490, baselineNet: 2240 },
   ];
 
   return {

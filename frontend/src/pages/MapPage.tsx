@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import L from 'leaflet';
@@ -387,7 +387,7 @@ export const MapPage: React.FC = () => {
     const originName = langKey === 'mr' ? currentVillage.name_mr : langKey === 'hi' ? currentVillage.name_hi : currentVillage.name;
 
     const message =
-      `🌾 *SellSmart Mandi Route & Profit Advisory*\n\n` +
+      `🌾 *Mohra Mandi Route & Profit Advisory*\n\n` +
       `📍 *Route:* ${originName} ➔ *${mandiName}* (${selectedMandi.distanceKm} km, ~${approxTransitMinutes} mins)\n` +
       `📦 *Produce Batch:* ${cropName} (${lotQty} Quintals)\n` +
       `🏷️ *Mandi Auction Rate:* ₹${selectedMandi.forecastPrice}/qtl\n` +

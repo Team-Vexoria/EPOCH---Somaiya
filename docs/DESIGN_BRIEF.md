@@ -1,4 +1,4 @@
-# Design Brief — Sell Smart (कृषी बाजार सल्लागार)
+﻿# Design Brief — Mohra (कृषी बाजार सल्लागार)
 
 > Grounded design specifications for the "Where & When to Sell" Agri-Decision Advisory for Farmers & FPOs in Maharashtra.
 
@@ -7,7 +7,7 @@
 ## 1. Product & Problem Statement
 Smallholder farmers and Farmer Producer Organisations (FPOs) across Maharashtra consistently lose 15%–35% of their crop value to harvest-time distress sales because localized arrivals depress local mandi prices. Existing tools only show today's spot rate or isolated price forecasts, failing to account for transport expenses and perishability decay. 
 
-**Sell Smart** is a decision-support advisory that calculates actual **net money in hand** across 10–15 regional mandis over a 1–3 week horizon by computing:
+**Mohra** is a decision-support advisory that calculates actual **net money in hand** across 10–15 regional mandis over a 1–3 week horizon by computing:
 $$\text{Net Return} = \text{Forecasted Price} \times (1 - \text{Spoilage Loss}) - \text{Transport Cost} - \text{Storage Cost}$$
 It delivers unequivocal advice (e.g., *"Hold 8 days, sell at Lasalgaon APMC, expected net gain ₹185/quintal"*) via an editorial web dashboard and a zero-friction WhatsApp/Voice note interface in Marathi and Hindi.
 

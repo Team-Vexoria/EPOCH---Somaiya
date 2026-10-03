@@ -1,4 +1,4 @@
-/**
+﻿/**
  * index.js - Meta WhatsApp Business Cloud API v25.0 Bridge Server
  * Listens on PORT (default 3000) for Meta WhatsApp Webhooks.
  * Forwards farmer queries to CHAT_API_URL (FastAPI CRAG) and dispatches replies via Meta Graph API.
@@ -17,7 +17,7 @@ const PORT = process.env.PORT || 3000;
 const WA_TOKEN = process.env.WA_TOKEN || process.env.META_ACCESS_TOKEN || "";
 const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID || process.env.META_PHONE_NUMBER_ID || "";
 const APP_SECRET = process.env.APP_SECRET || process.env.META_APP_SECRET || "";
-const VERIFY_TOKEN = process.env.VERIFY_TOKEN || process.env.META_VERIFY_TOKEN || "sellsmart_verify_2026";
+const VERIFY_TOKEN = process.env.VERIFY_TOKEN || process.env.META_VERIFY_TOKEN || "Mohra_verify_2026";
 const GRAPH_VERSION = (process.env.GRAPH_VERSION || "v25.0").replace(/^([^v])/, "v$1");
 const CHAT_API_URL = process.env.CHAT_API_URL || "http://localhost:8000/ask";
 
@@ -87,7 +87,7 @@ async function sendWhatsAppMessage(recipientPhone, messageText) {
 }
 
 /**
- * Query Sell Smart CRAG AI Backend for Farmer Advisory
+ * Query Mohra CRAG AI Backend for Farmer Advisory
  */
 async function queryAdvisoryBackend(userText, senderPhone) {
   try {
@@ -100,13 +100,13 @@ async function queryAdvisoryBackend(userText, senderPhone) {
     );
     if (res.data && res.data.answer) {
       return (
-        `🌾 *Sell Smart AI कृषी सल्लागार*\n` +
+        `🌾 *Mohra AI कृषी सल्लागार*\n` +
         `━━━━━━━━━━━━━━━━━━━━\n` +
         `${res.data.answer.trim()}\n\n` +
         `━━━━━━━━━━━━━━━━━━━━\n` +
         `📍 *इतर पिकांसाठी उत्तर पाठवा:*\n` +
         `• *१* - कांदा (Onion)  • *२* - टोमॅटो (Tomato)  • *३* - सोयाबीन (Soybean)\n` +
-        `🌐 *थेट नकाशा व कॅल्क्युलेटर:* https://sellsmart.app`
+        `🌐 *थेट नकाशा व कॅल्क्युलेटर:* https://Mohra.app`
       );
     }
   } catch (err) {
@@ -117,7 +117,7 @@ async function queryAdvisoryBackend(userText, senderPhone) {
   const lower = userText.toLowerCase();
   if (lower.includes("tomato") || lower.includes("टोमॅटो") || lower.includes("टमाटर") || userText === "2") {
     return (
-      `🌾 *Sell Smart कृषी सल्लागार (नाशिक जिल्हा)*\n` +
+      `🌾 *Mohra कृषी सल्लागार (नाशिक जिल्हा)*\n` +
       `━━━━━━━━━━━━━━━━━━━━\n` +
       `📦 *पीक:* टोमॅटो (Tomato)\n` +
       `🏷️ *निर्णय:* *आजच विक्री करा (SELL IMMEDIATELY)*\n` +
@@ -135,13 +135,13 @@ async function queryAdvisoryBackend(userText, senderPhone) {
       `━━━━━━━━━━━━━━━━━━━━\n` +
       `📍 *इतर पिकांसाठी उत्तर पाठवा:*\n` +
       `• *१* - कांदा  • *२* - टोमॅटो  • *३* - सोयाबीन\n` +
-      `🌐 *थेट नकाशा:* https://sellsmart.app`
+      `🌐 *थेट नकाशा:* https://Mohra.app`
     );
   }
 
   if (lower.includes("soybean") || lower.includes("सोयाबीन") || userText === "3") {
     return (
-      `🌾 *Sell Smart कृषी सल्लागार (नाशिक जिल्हा)*\n` +
+      `🌾 *Mohra कृषी सल्लागार (नाशिक जिल्हा)*\n` +
       `━━━━━━━━━━━━━━━━━━━━\n` +
       `📦 *पीक:* सोयाबीन (Soybean)\n` +
       `🏷️ *निर्णय:* *१५ दिवस माल थांबवा (HOLD 15 DAYS)*\n` +
@@ -156,13 +156,13 @@ async function queryAdvisoryBackend(userText, senderPhone) {
       `━━━━━━━━━━━━━━━━━━━━\n` +
       `📍 *इतर पिकांसाठी उत्तर पाठवा:*\n` +
       `• *१* - कांदा  • *२* - टोमॅटो  • *३* - सोयाबीन\n` +
-      `🌐 *थेट नकाशा:* https://sellsmart.app`
+      `🌐 *थेट नकाशा:* https://Mohra.app`
     );
   }
 
   // Default: Onion
   return (
-    `🌾 *Sell Smart कृषी सल्लागार (नाशिक जिल्हा)*\n` +
+    `🌾 *Mohra कृषी सल्लागार (नाशिक जिल्हा)*\n` +
     `━━━━━━━━━━━━━━━━━━━━\n` +
     `📦 *पीक:* कांदा (Onion)\n` +
     `🏷️ *निर्णय:* *१० दिवस माल थांबवा (HOLD 10 DAYS)*\n` +
@@ -181,7 +181,7 @@ async function queryAdvisoryBackend(userText, senderPhone) {
     `━━━━━━━━━━━━━━━━━━━━\n` +
     `📍 *इतर पिकांसाठी उत्तर पाठवा:*\n` +
     `• *१* - कांदा  • *२* - टोमॅटो  • *३* - सोयाबीन\n` +
-    `🌐 *थेट नकाशा व कॅल्क्युलेटर:* https://sellsmart.app`
+    `🌐 *थेट नकाशा व कॅल्क्युलेटर:* https://Mohra.app`
   );
 }
 
@@ -190,7 +190,7 @@ async function queryAdvisoryBackend(userText, senderPhone) {
 // ---------------------------------------------------------------------------
 app.get("/", (_req, res) => {
   res.json({
-    service: "Sell Smart Meta WhatsApp Bridge",
+    service: "Mohra Meta WhatsApp Bridge",
     status: "running",
     graph_version: GRAPH_VERSION,
     port: PORT,
@@ -300,7 +300,7 @@ app.post("/api/send", async (req, res) => {
 // Start listening
 app.listen(PORT, () => {
   console.log(`\n========================================================`);
-  console.log(`🚀 Sell Smart WhatsApp Meta Bridge Server Started`);
+  console.log(`🚀 Mohra WhatsApp Meta Bridge Server Started`);
   console.log(`========================================================`);
   console.log(`• Listening on Port : http://localhost:${PORT}`);
   console.log(`• Webhook Endpoint  : http://localhost:${PORT}/webhook`);

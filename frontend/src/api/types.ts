@@ -1,4 +1,4 @@
-export type DecisionType = 'SELL_NOW' | 'HOLD';
+﻿export type DecisionType = 'SELL_NOW' | 'HOLD';
 export type ConfidenceLevel = 'HIGH' | 'MEDIUM' | 'LOW';
 
 export interface ForecastPoint {
@@ -173,6 +173,6 @@ export interface BacktestResponse {
   averageGainPerQuintal: number;
   totalPotentialGainedPerFarmer100Qtl: number;
   accuracyRate: number; // percentage of times recommendation beat harvest-day baseline
-  cumulativeTimeline: Array<{ date: string; sellSmartNet: number; baselineNet: number }>;
+  cumulativeTimeline: Array<{ date: string; MohraNet: number; baselineNet: number }>;
   sampleDecisions: BacktestDecision[];
 }

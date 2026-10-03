@@ -1,5 +1,5 @@
-/**
- * Design Tokens for Sell Smart (EPOCH---Somaiya)
+﻿/**
+ * Design Tokens for Mohra (EPOCH---Somaiya)
  * 
  * Sourced from docs/DESIGN_BRIEF.md.
  * DO NOT hardcode hex colors or arbitrary values inside UI components.

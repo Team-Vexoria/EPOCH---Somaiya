@@ -1,5 +1,5 @@
-"""
-whatsapp_bot.py - Meta WhatsApp Cloud API & Twilio Bot for Sell Smart
+﻿"""
+whatsapp_bot.py - Meta WhatsApp Cloud API & Twilio Bot for Mohra
 Supports:
 1. Meta WhatsApp Business Cloud API Webhook (GET & POST /whatsapp/meta and /webhook)
    - Supports Meta Graph API v25.0 (configurable via GRAPH_VERSION)
@@ -45,7 +45,7 @@ router = APIRouter(tags=["WhatsApp Bot"])
 WA_TOKEN             = os.environ.get("WA_TOKEN") or os.environ.get("META_ACCESS_TOKEN", "")
 PHONE_NUMBER_ID      = os.environ.get("PHONE_NUMBER_ID") or os.environ.get("META_PHONE_NUMBER_ID", "")
 APP_SECRET           = os.environ.get("APP_SECRET") or os.environ.get("META_APP_SECRET", "")
-VERIFY_TOKEN         = os.environ.get("VERIFY_TOKEN") or os.environ.get("META_VERIFY_TOKEN", "sellsmart_verify_2026")
+VERIFY_TOKEN         = os.environ.get("VERIFY_TOKEN") or os.environ.get("META_VERIFY_TOKEN", "Mohra_verify_2026")
 GRAPH_VERSION        = os.environ.get("GRAPH_VERSION", "v25.0").strip()
 if not GRAPH_VERSION.startswith("v"):
     GRAPH_VERSION = f"v{GRAPH_VERSION}"
@@ -198,36 +198,36 @@ def is_greeting(text: str) -> bool:
 def generate_greeting(lang: str) -> str:
     if lang == "mr":
         return (
-            "🌾 *Sell Smart कृषी सल्लागार मध्ये आपले स्वागत आहे!*\n"
+            "🌾 *Mohra कृषी सल्लागार मध्ये आपले स्वागत आहे!*\n"
             "━━━━━━━━━━━━━━━━━━━━\n"
             "आपल्या पिकाचा सल्ला मिळवण्यासाठी खालीलपैकी एक उत्तर पाठवा:\n\n"
             "• *१* — 🧅 कांदा (Onion)\n"
             "• *२* — 🍅 टोमॅटो (Tomato)\n"
             "• *३* — 🌱 सोयाबीन (Soybean)\n\n"
             "किंवा थेट प्रश्न विचारा: *'मी निफाडचा आहे, कांदा ३० क्विंटल कुठे विकू?'*\n\n"
-            "🌐 पूर्ण नकाशा व कॅल्क्युलेटर: https://sellsmart.app"
+            "🌐 पूर्ण नकाशा व कॅल्क्युलेटर: https://Mohra.app"
         )
     elif lang == "hi":
         return (
-            "🌾 *Sell Smart कृषि सलाहकार में आपका स्वागत है!*\n"
+            "🌾 *Mohra कृषि सलाहकार में आपका स्वागत है!*\n"
             "━━━━━━━━━━━━━━━━━━━━\n"
             "अपनी फसल की सलाह के लिए एक नंबर भेजें:\n\n"
             "• *1* — 🧅 प्याज (Onion)\n"
             "• *2* — 🍅 टमाटर (Tomato)\n"
             "• *3* — 🌱 सोयाबीन (Soybean)\n\n"
             "या सीधे प्रश्न पूछें: *'निफाड से 30 क्विंटल प्याज कहाँ बेचें?'*\n\n"
-            "🌐 पूरा मैप और कैलकुलेटर: https://sellsmart.app"
+            "🌐 पूरा मैप और कैलकुलेटर: https://Mohra.app"
         )
     else:
         return (
-            "🌾 *Welcome to Sell Smart Agricultural Advisor!*\n"
+            "🌾 *Welcome to Mohra Agricultural Advisor!*\n"
             "━━━━━━━━━━━━━━━━━━━━\n"
             "Reply with a number to get today's APMC mandi advisory:\n\n"
             "• *1* — 🧅 Onion\n"
             "• *2* — 🍅 Tomato\n"
             "• *3* — 🌱 Soybean\n\n"
             "Or ask directly: *'I am from Niphad, where should I sell 30 quintals onion?'*\n\n"
-            "🌐 Full map & calculator: https://sellsmart.app"
+            "🌐 Full map & calculator: https://Mohra.app"
         )
 
 # ---------------------------------------------------------------------------
@@ -296,11 +296,11 @@ def generate_whatsapp_response(user_text: str, phone: str = "unknown") -> str:
             if res and res.get("answer"):
                 ans = res["answer"].strip()
                 footer = {
-                    "mr": "\n\n━━━━━━━━━━━━━━━━━━━━\n📍 *इतर पिकांसाठी उत्तर पाठवा:*\n• *१* - कांदा  • *२* - टोमॅटो  • *३* - सोयाबीन\n🌐 *थेट नकाशा व कॅल्क्युलेटर:* https://sellsmart.app",
-                    "hi": "\n\n━━━━━━━━━━━━━━━━━━━━\n📍 *अन्य फसलों के लिए रिप्लाई करें:*\n• *1* - प्याज  • *2* - टमाटर  • *3* - सोयाबीन\n🌐 *वेबसाइट और मंडी मैप:* https://sellsmart.app",
-                    "en": "\n\n━━━━━━━━━━━━━━━━━━━━\n📍 *Reply to switch crops:*\n• *1* - Onion  • *2* - Tomato  • *3* - Soybean\n🌐 *Map & Tools:* https://sellsmart.app"
+                    "mr": "\n\n━━━━━━━━━━━━━━━━━━━━\n📍 *इतर पिकांसाठी उत्तर पाठवा:*\n• *१* - कांदा  • *२* - टोमॅटो  • *३* - सोयाबीन\n🌐 *थेट नकाशा व कॅल्क्युलेटर:* https://Mohra.app",
+                    "hi": "\n\n━━━━━━━━━━━━━━━━━━━━\n📍 *अन्य फसलों के लिए रिप्लाई करें:*\n• *1* - प्याज  • *2* - टमाटर  • *3* - सोयाबीन\n🌐 *वेबसाइट और मंडी मैप:* https://Mohra.app",
+                    "en": "\n\n━━━━━━━━━━━━━━━━━━━━\n📍 *Reply to switch crops:*\n• *1* - Onion  • *2* - Tomato  • *3* - Soybean\n🌐 *Map & Tools:* https://Mohra.app"
                 }.get(lang, "")
-                return f"🌾 *Sell Smart AI कृषी सल्लागार*\n━━━━━━━━━━━━━━━━━━━━\n{ans}{footer}"
+                return f"🌾 *Mohra AI कृषी सल्लागार*\n━━━━━━━━━━━━━━━━━━━━\n{ans}{footer}"
         except Exception as e:
             logger.warning("Live Groq RAG call failed for WhatsApp, falling back to static template: %s", e)
 
@@ -354,7 +354,7 @@ def generate_whatsapp_response(user_text: str, phone: str = "unknown") -> str:
             for i, m in enumerate(mandi_records)
         ])
         return (
-            f"🌾 *Sell Smart कृषी सल्लागार (नाशिक जिल्हा)*\n"
+            f"🌾 *Mohra कृषी सल्लागार (नाशिक जिल्हा)*\n"
             f"━━━━━━━━━━━━━━━━━━━━\n"
             f"{village_banner_mr}"
             f"📦 *पीक:* {data['crop_name_mr']} ({qty} क्विंटल)\n"
@@ -369,7 +369,7 @@ def generate_whatsapp_response(user_text: str, phone: str = "unknown") -> str:
             f"━━━━━━━━━━━━━━━━━━━━\n"
             f"📍 *इतर पिकांसाठी उत्तर पाठवा:*\n"
             f"• *१* - कांदा  • *२* - टोमॅटो  • *३* - सोयाबीन\n"
-            f"🌐 *थेट नकाशा व कॅल्क्युलेटर:* https://sellsmart.app"
+            f"🌐 *थेट नकाशा व कॅल्क्युलेटर:* https://Mohra.app"
         )
 
     elif lang == "hi":
@@ -380,7 +380,7 @@ def generate_whatsapp_response(user_text: str, phone: str = "unknown") -> str:
             for i, m in enumerate(mandi_records)
         ])
         return (
-            f"🌾 *Sell Smart कृषि सलाहकार (नासिक जिला)*\n"
+            f"🌾 *Mohra कृषि सलाहकार (नासिक जिला)*\n"
             f"━━━━━━━━━━━━━━━━━━━━\n"
             f"{village_banner_hi}"
             f"📦 *फसल:* {data['crop_name_hi']} ({qty} क्विंटल)\n"
@@ -395,7 +395,7 @@ def generate_whatsapp_response(user_text: str, phone: str = "unknown") -> str:
             f"━━━━━━━━━━━━━━━━━━━━\n"
             f"📍 *अन्य फसलों के लिए रिप्लाई करें:*\n"
             f"• *1* - प्याज  • *2* - टमाटर  • *3* - सोयाबीन\n"
-            f"🌐 *वेबसाइट और मंडी मैप:* https://sellsmart.app"
+            f"🌐 *वेबसाइट और मंडी मैप:* https://Mohra.app"
         )
 
     else:
@@ -406,7 +406,7 @@ def generate_whatsapp_response(user_text: str, phone: str = "unknown") -> str:
             for i, m in enumerate(mandi_records)
         ])
         return (
-            f"🌾 *Sell Smart Advisory (Nashik District)*\n"
+            f"🌾 *Mohra Advisory (Nashik District)*\n"
             f"━━━━━━━━━━━━━━━━━━━━\n"
             f"{village_banner_en}"
             f"📦 *Crop:* {data['crop_name_en']} ({qty} Quintals)\n"
@@ -421,7 +421,7 @@ def generate_whatsapp_response(user_text: str, phone: str = "unknown") -> str:
             f"━━━━━━━━━━━━━━━━━━━━\n"
             f"📍 *Reply with number to check other crops:*\n"
             f"• *1* - Onion  • *2* - Tomato  • *3* - Soybean\n"
-            f"🌐 *Interactive Map & App:* https://sellsmart.app"
+            f"🌐 *Interactive Map & App:* https://Mohra.app"
         )
 
 

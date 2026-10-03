@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -130,7 +130,7 @@ export const FpoPage: React.FC = () => {
     link.setAttribute('href', encodedUri);
     link.setAttribute(
       'download',
-      `FPO_SellSmart_Plan_${selectedCrop}_${quantity}qtl.csv`
+      `FPO_Mohra_Plan_${selectedCrop}_${quantity}qtl.csv`
     );
     document.body.appendChild(link);
     link.click();
@@ -774,7 +774,7 @@ export const FpoPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Scenario B: SellSmart Anti-Glut Split (Recommended) */}
+              {/* Scenario B: Mohra Anti-Glut Split (Recommended) */}
               <div className="bg-neutral-bg border-2 border-sell p-5 relative">
                 <div className="flex items-center justify-between pb-3 border-b-2 border-neutral-border">
                   <div className="flex items-center gap-2">
@@ -782,7 +782,7 @@ export const FpoPage: React.FC = () => {
                     <span className="font-extrabold text-neutral-ink text-base">
                       {currentLang === 'mr'
                         ? `पर्याय ब: सेलस्मार्ट ${plan.allocations?.length || 3}-बाजार विभागणी`
-                        : `Scenario B: SellSmart ${plan.allocations?.length || 3}-Mandi Split`}
+                        : `Scenario B: Mohra ${plan.allocations?.length || 3}-Mandi Split`}
                     </span>
                   </div>
                   <span className="bg-sell text-sell-fg text-sm font-black px-2 py-0.5 border border-neutral-ink">

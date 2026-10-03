@@ -1,4 +1,4 @@
-"""
+﻿"""
 test_meta_whatsapp.py - Comprehensive Test Suite for Meta WhatsApp Cloud API Integration
 Tests:
 1. Environment configuration check
@@ -83,8 +83,8 @@ def run_webhook_verification_test():
         print("Skipping TestClient webhook test.")
         return
 
-    expected_challenge = "sellsmart_challenge_nonce_889911"
-    token = VERIFY_TOKEN or "sellsmart_verify_2026"
+    expected_challenge = "Mohra_challenge_nonce_889911"
+    token = VERIFY_TOKEN or "Mohra_verify_2026"
     
     # Test valid verification token on /whatsapp/meta
     resp = client.get(
@@ -246,7 +246,7 @@ async def run_live_dispatch_test(target_phone: str):
     print("=" * 65)
     
     test_msg = (
-        "🌾 *Sell Smart Meta WhatsApp Bot Live Test*\n"
+        "🌾 *Mohra Meta WhatsApp Bot Live Test*\n"
         "━━━━━━━━━━━━━━━━━━━━\n"
         "✅ Meta Cloud API v25.0 connection is verified!\n"
         "🧅 कांदा (Onion) • 🍅 टोमॅटो (Tomato) • 🌱 सोयाबीन (Soybean)\n"
@@ -264,7 +264,7 @@ async def run_live_dispatch_test(target_phone: str):
 
 def main():
     print("\n" + "#" * 65)
-    print(" SELL SMART — META WHATSAPP CLOUD API AUTOMATED VERIFICATION")
+    print(" Mohra — META WHATSAPP CLOUD API AUTOMATED VERIFICATION")
     print("#" * 65)
     
     run_env_check()

@@ -1,11 +1,11 @@
-{
+﻿{
   "app": {
-    "title": "Sell Smart",
+    "title": "Mohra",
     "tagline": "\"Where & When to Sell\" Advisory for Farmers & FPOs in Nashik District",
     "disclaimer": "Advisory only. Prices are forecasts."
   },
   "auth": {
-    "title": "Sell Smart",
+    "title": "Mohra",
     "tagline": "Real-time crop selling advisory for Nashik farmers and FPOs",
     "loginHeading": "Sign in to your account",
     "loginSubtitle": "Enter your mobile number to receive a verification code",
@@ -238,11 +238,11 @@
   },
   "backtest": {
     "title": "Proven Rupee Impact & Historical Backtest",
-    "subtitle": "Historical evaluation: Sell Smart advice vs. Harvest-day distress sales",
+    "subtitle": "Historical evaluation: Mohra advice vs. Harvest-day distress sales",
     "avgGain": "Average Extra Gain / Quintal",
     "farmerGain": "Extra Earned per 100 Quintals",
     "accuracy": "Recommendation Win Rate",
-    "chartTitle": "Sell Smart Advisory vs. Harvest-Day Local Sale Over Season",
+    "chartTitle": "Mohra Advisory vs. Harvest-Day Local Sale Over Season",
     "historyHeading": "Historical Decisions Ledger"
   }
 }

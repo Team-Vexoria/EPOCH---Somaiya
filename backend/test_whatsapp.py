@@ -1,5 +1,5 @@
-"""
-test_whatsapp.py - Quick local test script for Sell Smart WhatsApp Bot.
+﻿"""
+test_whatsapp.py - Quick local test script for Mohra WhatsApp Bot.
 Run with: python test_whatsapp.py
 """
 
@@ -22,7 +22,7 @@ def run_tests():
     ]
 
     print("=" * 60)
-    print(" SELL SMART WHATSAPP BOT LOCAL VERIFICATION TEST")
+    print(" Mohra WHATSAPP BOT LOCAL VERIFICATION TEST")
     print("=" * 60)
 
     for title, query in test_queries:

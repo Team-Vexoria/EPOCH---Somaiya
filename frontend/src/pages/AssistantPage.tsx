@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { sendChatMessage } from '../api';
 import type { ChatMessage, ChatRequest } from '../api/types';
@@ -95,10 +95,10 @@ export const AssistantPage: React.FC = () => {
     if (messages.length === 0) {
       const greetingText =
         currentLang === 'mr'
-          ? 'राम राम शेतकरी मित्रा! मी तुमचा "Sell Smart" बाजार सल्लागार. तुमच्याकडे कोणते पीक आहे, किती क्विंटल आहे आणि तुमचे गाव कोणते? मला सांगा किंवा खालील माइक बटन दाबून बोला.'
+          ? 'राम राम शेतकरी मित्रा! मी तुमचा "Mohra" बाजार सल्लागार. तुमच्याकडे कोणते पीक आहे, किती क्विंटल आहे आणि तुमचे गाव कोणते? मला सांगा किंवा खालील माइक बटन दाबून बोला.'
           : currentLang === 'hi'
-          ? 'नमस्ते किसान भाई! मैं आपका "Sell Smart" मंडी सलाहकार हूँ। आपके पास कौन सी फसल है, कितनी मात्रा है और आपका गांव कौन सा है? मुझे बताएं या माइक बटन दबाकर बोलें।'
-          : 'Hello Farmer! I am your "Sell Smart" decision assistant. What crop do you have, how many quintals, and which village in Nashik? Tell me or tap the mic to speak.';
+          ? 'नमस्ते किसान भाई! मैं आपका "Mohra" मंडी सलाहकार हूँ। आपके पास कौन सी फसल है, कितनी मात्रा है और आपका गांव कौन सा है? मुझे बताएं या माइक बटन दबाकर बोलें।'
+          : 'Hello Farmer! I am your "Mohra" decision assistant. What crop do you have, how many quintals, and which village in Nashik? Tell me or tap the mic to speak.';
 
       setMessages([
         {

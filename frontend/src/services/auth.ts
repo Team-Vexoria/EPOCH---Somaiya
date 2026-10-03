@@ -1,4 +1,4 @@
-import { RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult } from 'firebase/auth';
+﻿import { RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult } from 'firebase/auth';
 import { auth, isFirebaseConfigured } from '../lib/firebase';
 import { AUTH_CONFIG } from '../config/constants';
 
@@ -58,7 +58,7 @@ export async function sendOtp(phone: string): Promise<SendOtpResult> {
       code: generatedCode,
       expiresAt: Date.now() + 5 * 60 * 1000,
     };
-    sessionStorage.setItem(`sellsmart_otp_${cleanPhone}`, JSON.stringify(otpRecord));
+    sessionStorage.setItem(`Mohra_otp_${cleanPhone}`, JSON.stringify(otpRecord));
 
     try {
       // Dispatch real SMS via Vite proxy to Fast2SMS (with fallback to direct endpoint)
@@ -191,17 +191,17 @@ export async function verifyOtp(phone: string, code: string): Promise<VerifyOtpR
   const cleanCode = code.trim();
 
   // 1. Verify against Fast2SMS stored OTP
-  const storedOtpRaw = sessionStorage.getItem(`sellsmart_otp_${cleanPhone}`);
+  const storedOtpRaw = sessionStorage.getItem(`Mohra_otp_${cleanPhone}`);
   if (storedOtpRaw) {
     try {
       const storedOtp = JSON.parse(storedOtpRaw);
       if (Date.now() > storedOtp.expiresAt) {
-        sessionStorage.removeItem(`sellsmart_otp_${cleanPhone}`);
+        sessionStorage.removeItem(`Mohra_otp_${cleanPhone}`);
         throw new Error('OTP has expired. Please request a new code.');
       }
 
       if (cleanCode === storedOtp.code || cleanCode === AUTH_CONFIG.fixedOtp || (AUTH_CONFIG.allowAnyOtp && /^\d{6}$/.test(cleanCode))) {
-        sessionStorage.removeItem(`sellsmart_otp_${cleanPhone}`);
+        sessionStorage.removeItem(`Mohra_otp_${cleanPhone}`);
         return {
           success: true,
           token: `session_token_${cleanPhone}_${Date.now()}`,

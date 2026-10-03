@@ -1,6 +1,6 @@
-# Data Directory — Agri-Advisory ("Sell Smart")
+﻿# Data Directory — Agri-Advisory ("Mohra")
 
-This directory contains datasets, cleaning pipelines, and reference tables for the **Sell Smart: "Where and When to Sell"** advisory engine (Maharashtra focus).
+This directory contains datasets, cleaning pipelines, and reference tables for the **Mohra: "Where and When to Sell"** advisory engine (Maharashtra focus).
 
 ---
 

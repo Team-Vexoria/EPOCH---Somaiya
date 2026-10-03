@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Languages, Sprout, Bot, MapPin, Truck, TrendingUp } from 'lucide-react';
@@ -10,7 +10,7 @@ export const Navbar: React.FC = () => {
   const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newLang = e.target.value;
     i18n.changeLanguage(newLang);
-    localStorage.setItem('sellsmart_language', newLang);
+    localStorage.setItem('Mohra_language', newLang);
   };
 
   const navLinks = [
@@ -30,7 +30,7 @@ export const Navbar: React.FC = () => {
           </div>
           <div>
             <span className="font-bold text-xl tracking-tight text-neutral-ink block leading-tight">
-              Sell Smart
+              Mohra
             </span>
             <span className="text-sm font-semibold text-primary block leading-tight">
               {i18n.language === 'mr' ? 'शेतकरी बाजार मित्र' : i18n.language === 'hi' ? 'किसान मंडी मित्र' : 'Mandi Advisory'}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -82,7 +82,7 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
       gain: `₹${recommendation.expectedGainPerQuintal}`,
     })}`;
     const reasonText = `ℹ️ ${recommendation.confidenceReason}`;
-    const linkText = `🌾 Sell Smart Advisory - Nashik Mandis`;
+    const linkText = `🌾 Mohra Advisory - Nashik Mandis`;
 
     const shareBody = `${headline}\n${bestMandiText}\n${gainText}\n${reasonText}\n\n${linkText}`;
     const shareUrl = `https://wa.me/?text=${encodeURIComponent(shareBody)}`;

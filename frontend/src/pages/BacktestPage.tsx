@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -61,7 +61,7 @@ const DICTIONARY = {
     actualGrossLabel: 'Gross Amount: {{amt}}',
     actualFreightLabel: 'Road Freight: -{{amt}}',
     actualNetLabel: 'Actual Net Cash in Pocket',
-    recommendedTitle: 'What SellSmart Advised',
+    recommendedTitle: 'What Mohra Advised',
     recMandiLabel: 'Recommended: {{mandi}}',
     recActionLabel: 'Strategy: {{action}}',
     recGrossLabel: 'Gross Proceeds: {{amt}}',
@@ -75,9 +75,9 @@ const DICTIONARY = {
     beatPctLabel: 'Your sale was {{pct}}% higher than benchmark',
     directExtraBadge: 'Direct Extra In-Hand Earnings',
     greatSaleBadge: 'You Maximized Local Demand',
-    chartTitle: 'Net Cash Comparison: Actual Sale vs SellSmart Strategy',
+    chartTitle: 'Net Cash Comparison: Actual Sale vs Mohra Strategy',
     chartActual: 'Your Actual Sale',
-    chartOptimal: 'SellSmart Advice',
+    chartOptimal: 'Mohra Advice',
     chartGross: 'Total Sale Value',
     chartExpenses: 'Total Freight & Costs',
     chartNet: 'Final Cash in Pocket',
@@ -131,7 +131,7 @@ const DICTIONARY = {
     actualGrossLabel: 'एकूण रक्कम: {{amt}}',
     actualFreightLabel: 'गाडीभाडे वजा: -{{amt}}',
     actualNetLabel: 'खिशात पडलेले प्रत्यक्ष पैसे',
-    recommendedTitle: 'SellSmart ने काय सुचवले असते?',
+    recommendedTitle: 'Mohra ने काय सुचवले असते?',
     recMandiLabel: 'सुचवलेला बाजार: {{mandi}}',
     recActionLabel: 'नियोजन: {{action}}',
     recGrossLabel: 'एकूण विक्री रक्कम: {{amt}}',
@@ -145,9 +145,9 @@ const DICTIONARY = {
     beatPctLabel: 'तुम्ही सरासरीपेक्षा {{pct}}% जास्त नफा मिळवला',
     directExtraBadge: 'खिशात पडणारा थेट जास्तीचा नफा',
     greatSaleBadge: 'उत्कृष्ट स्थानिक भाव मिळवला',
-    chartTitle: 'नफ्याची थेट तुलना: प्रत्यक्ष विक्री वि. SellSmart सल्ला',
+    chartTitle: 'नफ्याची थेट तुलना: प्रत्यक्ष विक्री वि. Mohra सल्ला',
     chartActual: 'तुमची प्रत्यक्ष विक्री',
-    chartOptimal: 'SellSmart चा सल्ला',
+    chartOptimal: 'Mohra चा सल्ला',
     chartGross: 'एकूण विक्री रक्कम',
     chartExpenses: 'एकूण वाहतूक व खर्च',
     chartNet: 'खिशात पडणारा निव्वळ नफा',
@@ -201,7 +201,7 @@ const DICTIONARY = {
     actualGrossLabel: 'कुल राशि: {{amt}}',
     actualFreightLabel: 'गाड़ी भाड़ा: -{{amt}}',
     actualNetLabel: 'जेब में आई शुद्ध राशि',
-    recommendedTitle: 'SellSmart ने क्या सलाह दी होती?',
+    recommendedTitle: 'Mohra ने क्या सलाह दी होती?',
     recMandiLabel: 'सुझाई गई मंडी: {{mandi}}',
     recActionLabel: 'रणनीति: {{action}}',
     recGrossLabel: 'कुल संभावित राशि: {{amt}}',
@@ -215,9 +215,9 @@ const DICTIONARY = {
     beatPctLabel: 'आपने बाजार से {{pct}}% अधिक कमाई की',
     directExtraBadge: 'जेब में सीधा अतिरिक्त लाभ',
     greatSaleBadge: 'स्थानीय मांग का पूरा लाभ उठाया',
-    chartTitle: 'लाभ तुलना: वास्तविक बिक्री बनाम SellSmart सलाह',
+    chartTitle: 'लाभ तुलना: वास्तविक बिक्री बनाम Mohra सलाह',
     chartActual: 'आपकी वास्तविक बिक्री',
-    chartOptimal: 'SellSmart की सलाह',
+    chartOptimal: 'Mohra की सलाह',
     chartGross: 'कुल बिक्री राशि',
     chartExpenses: 'कुल भाड़ा व खर्च',
     chartNet: 'जेब में शुद्ध लाभ',
@@ -377,7 +377,7 @@ export const BacktestPage: React.FC = () => {
   const actualFreight = lotQuantity * (distToSoldMandi * 2.5); // ₹2.5/km/qtl
   const actualNet = actualGross - actualFreight;
 
-  // 2. Calculate SellSmart Advised Optimal Net Realized
+  // 2. Calculate Mohra Advised Optimal Net Realized
   const decayFraction = Math.min(0.3, benchmarkData.decayRateDaily * benchmarkData.holdingDays);
   const retainedQty = lotQuantity * (1 - decayFraction);
   const optimalGross = retainedQty * benchmarkData.optimalPrice;
@@ -405,17 +405,17 @@ export const BacktestPage: React.FC = () => {
     {
       metric: t.chartGross,
       Actual: Math.round(actualGross),
-      SellSmart: Math.round(optimalGross),
+      Mohra: Math.round(optimalGross),
     },
     {
       metric: t.chartExpenses,
       Actual: Math.round(actualFreight),
-      SellSmart: Math.round(optimalFreight + optimalStorage),
+      Mohra: Math.round(optimalFreight + optimalStorage),
     },
     {
       metric: t.chartNet,
       Actual: Math.round(actualNet),
-      SellSmart: Math.round(optimalNet),
+      Mohra: Math.round(optimalNet),
     },
   ];
 
@@ -719,7 +719,7 @@ export const BacktestPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Column 2: What SellSmart Recommended */}
+            {/* Column 2: What Mohra Recommended */}
             <div className="bg-neutral-bg border-2 border-primary p-5 flex flex-col justify-between shadow-hard">
               <div>
                 <div className="text-sm font-black uppercase tracking-wider text-primary mb-1 flex items-center gap-1.5">
@@ -819,7 +819,7 @@ export const BacktestPage: React.FC = () => {
                   />
                   <Legend wrapperStyle={{ fontSize: '14px', fontWeight: 'bold', paddingTop: '10px' }} />
                   <Bar dataKey="Actual" name={t.chartActual} fill="#9B2C2C" />
-                  <Bar dataKey="SellSmart" name={t.chartOptimal} fill="#2B6CB0" />
+                  <Bar dataKey="Mohra" name={t.chartOptimal} fill="#2B6CB0" />
                 </BarChart>
               </ResponsiveContainer>
             </div>

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+﻿import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -208,7 +208,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <Sprout className="w-5 h-5" />
               </div>
               <span className="font-black text-lg tracking-tight text-neutral-ink">
-                Sell Smart
+                Mohra
               </span>
             </div>
 

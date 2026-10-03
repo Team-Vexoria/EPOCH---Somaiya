@@ -1,4 +1,4 @@
-export const APP_NAME = 'Sell Smart';
+﻿export const APP_NAME = 'Mohra';
 
 export const AUTH_CONFIG = {
   fixedOtp: '123456',
@@ -8,7 +8,7 @@ export const AUTH_CONFIG = {
   demoPhone: '9822012345',
 };
 
-export const STORAGE_KEY = 'sellsmart_app_state_v1';
+export const STORAGE_KEY = 'Mohra_app_state_v1';
 
 export const SUPPORTED_LANGUAGES = [
   { code: 'en', name: 'English', nativeName: 'English', speechCode: 'en-IN' },

@@ -1,6 +1,6 @@
-# KJSIT Oct 2026 Hackathon Problem Statements
+﻿# KJSIT Oct 2026 Hackathon Problem Statements
 
-## PS 1: Sell Smart: "Where and When to Sell" Advisory for Farmers and FPOs
+## PS 1: Mohra: "Where and When to Sell" Advisory for Farmers and FPOs
 **Domain:** Agriculture
 
 ---

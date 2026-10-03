@@ -1,4 +1,4 @@
-# Sell Smart - Frontend
+﻿# Mohra - Frontend
 
 A mobile-first web app where Indian farmers and FPOs in Nashik district chat with an AI assistant (in the style of ChatGPT / Claude) to decide what to sell, when, and where for maximum net profit.
 

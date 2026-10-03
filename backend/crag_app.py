@@ -1,4 +1,4 @@
-"""
+﻿"""
 crag_app.py - Agentic Corrective RAG (CRAG) for Nashik Mandi Crop Advisory.
 
 Powered by LangGraph, Groq, and ChromaDB ONNX Embeddings.
@@ -188,7 +188,7 @@ User question:
 doc_grader = (grade_prompt | structured_llm_grader).with_retry(stop_after_attempt=3)
 
 # 2. QA RAG Chain
-PROMPT_QA = """You are Sell Smart (स्मार्ट कृषी सल्लागार), an expert AI agricultural market advisor for farmers and traders in Nashik District, Maharashtra.
+PROMPT_QA = """You are Mohra (स्मार्ट कृषी सल्लागार), an expert AI agricultural market advisor for farmers and traders in Nashik District, Maharashtra.
 
 CORE DATASET CONTEXT & TRANSPARENCY:
 - Our primary APMC historical dataset covers the years 2014–2016 for Nashik district mandis (Lasalgaon, Pimpalgaon, Malegaon, Kopargaon, Ahmednagar, Satana, Rahuri, etc.) across Onion, Tomato, and Soybean.

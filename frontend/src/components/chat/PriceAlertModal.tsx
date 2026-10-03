@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -56,7 +56,7 @@ interface MandiNetEvaluation {
   totalCash: number;
 }
 
-const STORAGE_KEY = 'sellsmart_price_alerts';
+const STORAGE_KEY = 'Mohra_price_alerts';
 
 export function getStoredAlerts(): PriceAlert[] {
   try {
@@ -245,7 +245,7 @@ export const PriceAlertModal: React.FC<PriceAlertModalProps> = ({
         : topMandi.mandi.name;
 
     const text = [
-      `🔔 *Sell Smart Profit Alert - Nashik*`,
+      `🔔 *Mohra Profit Alert - Nashik*`,
       `🌾 *Crop*: ${cropName} (${crop.emoji})`,
       `🏆 *Highest Profit Mandi Right Now*: ${mandiName}`,
       `💰 *Net Realized in Pocket*: ${formatRupee(topMandi.netInPocket)} / qtl`,

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * test_webhook.js - Local automated tester for WhatsApp Bridge server
  */
 
@@ -10,12 +10,12 @@ dotenv.config();
 
 const PORT = process.env.PORT || 3000;
 const BASE_URL = `http://localhost:${PORT}`;
-const VERIFY_TOKEN = process.env.VERIFY_TOKEN || "sellsmart_verify_2026";
+const VERIFY_TOKEN = process.env.VERIFY_TOKEN || "Mohra_verify_2026";
 const APP_SECRET = process.env.APP_SECRET || "";
 
 async function runBridgeTests() {
   console.log("\n=======================================================");
-  console.log(" 🧪 TESTING SELL SMART WHATSAPP NODE.JS BRIDGE SERVER");
+  console.log(" 🧪 TESTING Mohra WHATSAPP NODE.JS BRIDGE SERVER");
   console.log("=======================================================");
 
   // 1. Health check
@@ -30,7 +30,7 @@ async function runBridgeTests() {
 
   // 2. Webhook GET Challenge verification
   try {
-    const challenge = "sellsmart_challenge_node_12345";
+    const challenge = "Mohra_challenge_node_12345";
     const resp = await axios.get(`${BASE_URL}/webhook`, {
       params: {
         "hub.mode": "subscribe",
