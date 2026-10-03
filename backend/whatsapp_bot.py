@@ -39,6 +39,13 @@ from typing import Dict, Any, Optional
 from fastapi import APIRouter, Request, Response, Query, HTTPException
 from pydantic import BaseModel
 
+from villages import (
+    resolve_village_from_text,
+    VILLAGES,
+    village_freight_table,
+    freight_cost
+)
+
 logger = logging.getLogger("whatsapp_bot")
 
 router = APIRouter(prefix="/whatsapp", tags=["WhatsApp Bot"])
@@ -53,18 +60,19 @@ WA_BUSINESS_NUMBER   = os.environ.get("WA_BUSINESS_NUMBER",  "")   # e.g. 919876
 
 # ---------------------------------------------------------------------------
 # Per-user session memory (in-memory; replace with Redis for production)
-# Remembers: last crop discussed, last quantity mentioned, preferred language
+# Remembers: last crop discussed, last quantity mentioned, preferred language, village origin
 # ---------------------------------------------------------------------------
 _user_sessions: Dict[str, Dict[str, Any]] = {}
 
 def get_session(phone: str) -> Dict[str, Any]:
     if phone not in _user_sessions:
-        _user_sessions[phone] = {"crop": "onion", "quantity": 20, "lang": None}
+        _user_sessions[phone] = {"crop": "onion", "quantity": 20, "lang": None, "village": None}
     return _user_sessions[phone]
 
 def update_session(phone: str, **kwargs):
     sess = get_session(phone)
     sess.update(kwargs)
+
 
 # ---------------------------------------------------------------------------
 # Core Advisory Knowledge Base — Nashik District
@@ -258,6 +266,13 @@ def generate_whatsapp_response(user_text: str, phone: str = "unknown") -> str:
     else:
         qty = sess.get("quantity", 20)
 
+    # Detect village origin from text — fall back to session memory
+    v_id = resolve_village_from_text(user_text)
+    if v_id:
+        update_session(phone, village=v_id)
+    else:
+        v_id = sess.get("village")
+
     # For natural language / conversational farmer questions, invoke the live Groq RAG pipeline
     is_conversational = len(user_text.split()) > 2 or any(
         kw in user_text.lower() for kw in [
@@ -275,8 +290,9 @@ def generate_whatsapp_response(user_text: str, phone: str = "unknown") -> str:
                 "hi": "कृपया उत्तर सरल हिन्दी में दें।",
                 "en": "Please provide practical farmer advice in English."
             }.get(lang, "")
-            full_prompt = f"{user_text} (Crop: {crop_id}, Quantity: {qty} quintals, District: Nashik. {lang_prompt})"
-            res = ask_crag(full_prompt)
+            origin_str = f", Farmer Village Origin: {VILLAGES[v_id]['name']}" if (v_id and v_id in VILLAGES) else ""
+            full_prompt = f"{user_text} (Crop: {crop_id}, Quantity: {qty} quintals{origin_str}, District: Nashik. {lang_prompt})"
+            res = ask_crag(full_prompt, village=v_id)
             if res and res.get("answer"):
                 ans = res["answer"].strip()
                 footer = {
@@ -290,10 +306,44 @@ def generate_whatsapp_response(user_text: str, phone: str = "unknown") -> str:
 
     data = MANDI_DATA[crop_id]
 
+    # Calculate dynamic freight from farmer's village origin if known
+    mandi_records = list(data["mandis"])
+    village_banner_mr = f"📍 *शेतकऱ्याचे गाव:* {VILLAGES[v_id]['name']} ({VILLAGES[v_id].get('name_mr', '')})\n" if (v_id and v_id in VILLAGES) else ""
+    village_banner_hi = f"📍 *किसान का गांव:* {VILLAGES[v_id]['name']}\n" if (v_id and v_id in VILLAGES) else ""
+    village_banner_en = f"📍 *Farmer Origin:* {VILLAGES[v_id]['name']} (Taluka {VILLAGES[v_id]['taluka']})\n" if (v_id and v_id in VILLAGES) else ""
+
+    if v_id and v_id in VILLAGES:
+        v_table = {r["mandi_id"]: r for r in village_freight_table(v_id)}
+        base_prices = {"lasalgaon": 2460, "pimpalgaon": 2390, "yeola": 2310, "nashik": 2350, "dindori": 2280, "malegaon": 4920, "manmad": 4850}
+        spoilage_loss = 25 if crop_id == "onion" else (80 if crop_id == "tomato" else 15)
+        dynamic_mandis = []
+        for m in data["mandis"]:
+            mid = "lasalgaon" if "lasalgaon" in m["name"].lower() else (
+                "pimpalgaon" if "pimpalgaon" in m["name"].lower() else (
+                    "yeola" if "yeola" in m["name"].lower() else (
+                        "nashik" if "nashik" in m["name"].lower() else "malegaon"
+                    )
+                )
+            )
+            v_info = v_table.get(mid)
+            if v_info:
+                p = base_prices.get(mid, 2400)
+                fr = v_info["freight_per_qtl"]
+                net = p - fr - spoilage_loss
+                dynamic_mandis.append({
+                    "name": m["name"],
+                    "distance": f"{v_info['distance_km']} km",
+                    "price": f"₹{p:,}",
+                    "freight": f"-₹{fr}",
+                    "net": f"₹{net:,}"
+                })
+        if dynamic_mandis:
+            mandi_records = dynamic_mandis
+
     def _net_num(m):
         return int(m["net"].replace("₹", "").replace(",", ""))
 
-    top_net = _net_num(data["mandis"][0])
+    top_net = _net_num(mandi_records[0])
     total_payout = top_net * qty
 
     if lang == "mr":
@@ -301,11 +351,12 @@ def generate_whatsapp_response(user_text: str, phone: str = "unknown") -> str:
             f"{i+1}️⃣ *{m['name']}* ({m['distance']})\n"
             f"   • भाव: {m['price']} | वाहतूक: {m['freight']}\n"
             f"   • *हातात निव्वळ: {m['net']} / qtl*"
-            for i, m in enumerate(data["mandis"])
+            for i, m in enumerate(mandi_records)
         ])
         return (
             f"🌾 *Sell Smart कृषी सल्लागार (नाशिक जिल्हा)*\n"
             f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"{village_banner_mr}"
             f"📦 *पीक:* {data['crop_name_mr']} ({qty} क्विंटल)\n"
             f"🏷️ *निर्णय:* *{data['decision_mr']}*\n"
             f"👑 *सर्वोत्तम बाजार:* *{data['best_mandi_mr']}*\n"
@@ -321,16 +372,18 @@ def generate_whatsapp_response(user_text: str, phone: str = "unknown") -> str:
             f"🌐 *थेट नकाशा व कॅल्क्युलेटर:* https://sellsmart.app"
         )
 
+
     elif lang == "hi":
         mandi_lines = "\n".join([
             f"{i+1}️⃣ *{m['name']}* ({m['distance']})\n"
             f"   • भाव: {m['price']} | ढुलाई: {m['freight']}\n"
             f"   • *हाथ में बचत: {m['net']} / qtl*"
-            for i, m in enumerate(data["mandis"])
+            for i, m in enumerate(mandi_records)
         ])
         return (
             f"🌾 *Sell Smart कृषि सलाहकार (नासिक जिला)*\n"
             f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"{village_banner_hi}"
             f"📦 *फसल:* {data['crop_name_hi']} ({qty} क्विंटल)\n"
             f"🏷️ *निर्णय:* *{data['decision_hi']}*\n"
             f"👑 *सर्वश्रेष्ठ मंडी:* *{data['best_mandi_hi']}*\n"
@@ -351,11 +404,12 @@ def generate_whatsapp_response(user_text: str, phone: str = "unknown") -> str:
             f"{i+1}️⃣ *{m['name']}* ({m['distance']})\n"
             f"   • Price: {m['price']} | Freight: {m['freight']}\n"
             f"   • *Net in Pocket: {m['net']} / qtl*"
-            for i, m in enumerate(data["mandis"])
+            for i, m in enumerate(mandi_records)
         ])
         return (
             f"🌾 *Sell Smart Advisory (Nashik District)*\n"
             f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"{village_banner_en}"
             f"📦 *Crop:* {data['crop_name_en']} ({qty} Quintals)\n"
             f"🏷️ *Decision:* *{data['decision_en']}*\n"
             f"👑 *Best APMC:* *{data['best_mandi_en']}*\n"

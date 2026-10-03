@@ -25,7 +25,7 @@ if sys.platform == "win32":
         sys.stdout.reconfigure(encoding="utf-8")
     except Exception:
         pass
-from typing import List, TypedDict, Optional
+from typing import List, TypedDict, Optional, Any
 from operator import itemgetter
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
@@ -48,6 +48,13 @@ from langchain_openai import ChatOpenAI
 from langchain_chroma import Chroma
 from langgraph.graph import StateGraph, END
 from chromadb.utils import embedding_functions
+
+from villages import (
+    VILLAGES,
+    freight_context_for_prompt,
+    resolve_village_name,
+    resolve_village_from_text,
+)
 
 # ---------------------------------------------------------
 # Configuration and Constants
@@ -183,25 +190,31 @@ doc_grader = (grade_prompt | structured_llm_grader).with_retry(stop_after_attemp
 # 2. QA RAG Chain
 PROMPT_QA = """You are Sell Smart (स्मार्ट कृषी सल्लागार), an expert AI agricultural market advisor for farmers and traders in Nashik District, Maharashtra.
 
+CORE DATASET CONTEXT & TRANSPARENCY:
+- Our primary APMC historical dataset covers the years 2014–2016 for Nashik district mandis (Lasalgaon, Pimpalgaon, Malegaon, Kopargaon, Ahmednagar, Satana, Rahuri, etc.) across Onion, Tomato, and Soybean.
+- Live Spot Rates: When context contains live Agmarknet / APMC web search results, extract and lead with the most recent verified spot rates.
+
 STRICT ACCURACY & PRESENTATION RULES:
 1. LATEST DATE & FACTUAL ACCURACY (CRITICAL):
-   - When context contains live APMC / Agmarknet search results, scan all snippets for their REPORTING DATES.
-   - Always prioritize and extract data from the MOST RECENT / LATEST dated report (e.g., September/October 2026). NEVER cite an older 2024/2025 snippet if a 2026 update is available.
-   - Extract and state the EXACT reported figures:
-     • Reported Date (उदा. 1 ऑक्टोबर 2026 / 30 सप्टेंबर 2026)
+   - When context contains live APMC / Agmarknet search results, scan snippets for their REPORTING DATES.
+   - Always extract and quote data from the MOST RECENT / LATEST dated report (e.g., September/October 2026).
+   - Extract exact figures:
+     • Reported Date (उदा. 1 ऑक्टोबर 2026)
      • Modal Price (मोडल / सरासरी दर) in ₹/quintal and ₹/kg (1 quintal = 100 kg)
      • Minimum and Maximum Price Range (किमान - कमाल दर)
-     • Total Arrivals / Volume (if reported in the snippet)
-   - Never hallucinate, invent, or guess prices. Quote the exact numbers from the most recent verified snippet.
-2. CLEAN HUMAN ADVISORY STRUCTURE:
+     • Total Arrivals / Volume (if reported)
+   - Never hallucinate, invent, or guess prices. Quote exact numbers from the verified snippet.
+2. DYNAMIC VILLAGE FREIGHT & NET RETURN:
+   - If the context contains a 'Farmer's Origin / Transport costs calculated FROM the farmer's village' table, USE THOSE EXACT VILLAGE-SPECIFIC DISTANCES AND FREIGHT COSTS (₹/quintal).
+   - Explain: Net Return = Mandi Price - Village Transport Freight - Spoilage Loss.
+   - Recommend the mandi that yields the highest NET return in hand, not just highest gross rate.
+3. DOMAIN STORAGE & SPOILAGE:
+   - Factor in crop perishability (e.g. ventilated chawl for onions with ~1.2% weekly shrinkage vs immediate 24-48h sale for tomatoes, dry godown for soybeans).
+4. CLEAN HUMAN ADVISORY STRUCTURE:
    - Begin with a warm, natural conversational greeting and state the exact spot price immediately.
    - Present price details in clean, scannable bullet points (e.g. • **मोडल दर (Modal Price):** ₹X / क्विंटल (₹X / किलो)).
-   - Provide practical guidance (net returns after transport costs, near-term vs holding decision).
    - Strictly NO raw ASCII pipe tables, NO horizontal divider lines (---), NO asterisk footnotes (*Range reflects...), and NO raw URLs or bracketed citations.
-3. DATASET CONTEXT & TRANSPARENCY:
-   - Historical APMC Baseline Dataset: Covers 2014 to 2016 APMC records across Nashik district mandis (Lasalgaon, Pimpalgaon, Malegaon, Kopargaon, Rahuri, Satana, etc.) for Onion, Tomato, and Soybean.
-   - Live Spot Rates: Sourced from current Agmarknet / APMC mandi updates.
-4. STRICT LANGUAGE MATCHING:
+5. STRICT LANGUAGE MATCHING:
    - If the user's question is in English, answer entirely in English.
    - If the user's question is in Marathi (मराठी), answer in fluent, respectful Marathi with standard agricultural terms.
    - If the user's question is in Hindi (हिंदी), answer in Hindi.
@@ -348,17 +361,19 @@ def search_web(query: str) -> list:
 # ---------------------------------------------------------
 # State Schema & Node Functions
 # ---------------------------------------------------------
-class GraphState(TypedDict):
+class GraphState(TypedDict, total=False):
     """
     question: question
     generation: LLM response generation
     web_search_needed: flag 'Yes'/'No'
     documents: list of context documents
+    village: optional farmer village origin id
     """
     question: str
     generation: str
     web_search_needed: str
-    documents: List[str]
+    documents: List[Any]
+    village: Optional[str]
 
 def retrieve(state: GraphState) -> dict:
     t_start = time.time()
@@ -436,10 +451,22 @@ def web_search(state: GraphState) -> dict:
 def generate_answer(state: GraphState) -> dict:
     t_start = time.time()
     print("---GENERATE ANSWER---")
-    generation = qa_rag_chain.invoke({"context": state.get("documents", []), "question": state["question"]})
+    context_docs = list(state.get("documents", []))
+    v_id = state.get("village") or resolve_village_from_text(state["question"])
+    if v_id and v_id in VILLAGES:
+        v_ctx = freight_context_for_prompt(v_id)
+        if v_ctx:
+            v_name = VILLAGES[v_id]["name"]
+            v_doc = Document(
+                page_content=v_ctx,
+                metadata={"source": f"Dynamic Village Freight Matrix ({v_name})"}
+            )
+            context_docs.insert(0, v_doc)
+
+    generation = qa_rag_chain.invoke({"context": context_docs, "question": state["question"]})
     elapsed = time.time() - t_start
     print(f"---NODE TIME (generate_answer): {elapsed:.2f}s---")
-    return {"generation": generation}
+    return {"generation": generation, "documents": context_docs}
 
 def generate_or_search(state: GraphState) -> str:
     print("---ASSESS GRADED DOCUMENTS---")
@@ -471,21 +498,33 @@ compiled_crag_app = agentic_rag.compile()
 # ---------------------------------------------------------
 # Public API
 # ---------------------------------------------------------
-def ask_crag(question: str) -> dict:
+def ask_crag(question: str, village: Optional[str] = None) -> dict:
     """
     Run the Agentic CRAG workflow on a given question.
+    Optionally accepts a village (id or name) to compute village-origin specific freight.
 
     Returns:
         dict: {
             "answer": str,
             "path": "rag" | "corrective",
             "sources": list[str],
-            "rewritten_question": str
+            "rewritten_question": str,
+            "village": Optional[str]
         }
     """
     initial_question = question
+    v_id = ""
+    if village:
+        v_id = resolve_village_name(village) or resolve_village_from_text(village)
+    if not v_id:
+        v_id = resolve_village_from_text(question)
+
     t_pipeline = time.time()
-    res = compiled_crag_app.invoke({"question": question})
+    input_state: dict = {"question": question}
+    if v_id:
+        input_state["village"] = v_id
+
+    res = compiled_crag_app.invoke(input_state)
     total_time = time.time() - t_pipeline
     print(f"---TOTAL PIPELINE TIME: {total_time:.2f}s---")
 
@@ -501,7 +540,9 @@ def ask_crag(question: str) -> dict:
             sources.append(f"{mandi} APMC ({crop.title()})")
         else:
             src = doc.metadata.get("source", "web")
-            if src == "web" or not src:
+            if src.startswith("Dynamic"):
+                sources.append(src)
+            elif src == "web" or not src:
                 sources.append("Agmarknet APMC Records")
             else:
                 page = doc.metadata.get("page")
@@ -513,7 +554,8 @@ def ask_crag(question: str) -> dict:
         "answer": res.get("generation", ""),
         "path": path,
         "sources": sources,
-        "rewritten_question": rewritten_q
+        "rewritten_question": rewritten_q,
+        "village": v_id or None
     }
 
 if __name__ == "__main__":
