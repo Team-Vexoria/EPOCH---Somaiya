@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: mohra-backend
+    runtime: python
+    region: singapore # or oregon / frankfurt
+    plan: free
+    rootDir: backend
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: PYTHONPATH
+        value: .
+      - key: GROQ_API_KEY
+        sync: false
+      - key: WA_TOKEN
+        sync: false
+      - key: PHONE_NUMBER_ID
+        sync: false
+      - key: APP_SECRET
+        sync: false
+      - key: VERIFY_TOKEN
+        value: sellsmart_verify_2026
+      - key: GRAPH_VERSION
+        value: v25.0
+      - key: GROQ_MODEL
+        value: qwen/qwen3.8-27b
