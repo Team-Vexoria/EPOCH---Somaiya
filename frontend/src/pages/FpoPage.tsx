@@ -37,6 +37,7 @@ import { FPO_CLUSTERS } from '../config/fpoHubs';
 import { fetchFpoPlan } from '../api/client';
 import type { FpoPlanResponse } from '../api/types';
 import { formatRupee } from '../i18n';
+import { FpoGatePassModal } from '../components/fpo/FpoGatePassModal';
 
 // Colors for allocations using token variables
 const ALLOCATION_COLORS = [
@@ -145,6 +146,7 @@ export const FpoPage: React.FC = () => {
   // FPO Plan Result
   const [plan, setPlan] = useState<FpoPlanResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [showGatePassModal, setShowGatePassModal] = useState<boolean>(false);
 
   useEffect(() => {
     let isCancelled = false;
@@ -223,7 +225,7 @@ export const FpoPage: React.FC = () => {
   };
 
   const handlePrint = () => {
-    window.print();
+    setShowGatePassModal(true);
   };
 
   // Pie chart data
@@ -235,7 +237,7 @@ export const FpoPage: React.FC = () => {
     })) || [];
 
   return (
-    <div className="flex-1 bg-neutral-bg py-6 px-4 md:px-8">
+    <div className={`flex-1 bg-neutral-bg py-6 px-4 md:px-8 ${showGatePassModal ? 'print:hidden' : ''}`}>
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header & Value Proposition */}
         <div className="bg-neutral-surface border-2 border-neutral-border p-5 md:p-6 shadow-hard flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -281,10 +283,11 @@ export const FpoPage: React.FC = () => {
             </button>
             <button
               onClick={handlePrint}
-              className="bg-primary hover:bg-primary-hover text-primary-fg font-bold py-2.5 px-4 border-2 border-neutral-ink shadow-hard flex items-center gap-2 text-sm transition-colors"
+              disabled={!plan || loading}
+              className="bg-primary hover:bg-primary-hover text-primary-fg font-bold py-2.5 px-4 border-2 border-neutral-ink shadow-hard flex items-center gap-2 text-sm transition-colors disabled:opacity-50 cursor-pointer"
             >
               <Printer className="w-4 h-4" />
-              <span>{t('fpo.print')}</span>
+              <span>{currentLang === 'mr' ? 'गेट पास व ड्रायव्हर स्लिप्स' : 'Gate Passes & Driver Slips'}</span>
             </button>
           </div>
         </div>
@@ -1110,6 +1113,18 @@ export const FpoPage: React.FC = () => {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Official FPO Mandi Gate Passes & Driver Slips Modal */}
+        {plan && (
+          <FpoGatePassModal
+            isOpen={showGatePassModal}
+            onClose={() => setShowGatePassModal(false)}
+            plan={plan}
+            crop={selectedCrop}
+            quantity={quantity}
+            currentLang={currentLang}
+          />
         )}
       </div>
     </div>
