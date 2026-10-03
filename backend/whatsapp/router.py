@@ -167,6 +167,22 @@ async def test_whatsapp_bot(payload: TestPayload):
     if payload.village:
         update_user_profile(phone, village=payload.village)
 
+    from whatsapp.hardcoded_responses import get_hardcoded_response
+    custom_reply = get_hardcoded_response(payload.message)
+    if custom_reply:
+        add_message_history(phone, "user", payload.message)
+        add_message_history(phone, "assistant", custom_reply)
+        return {
+            "query": payload.message,
+            "phone": phone,
+            "raw_answer": custom_reply,
+            "whatsapp_reply": custom_reply,
+            "sources": ["Instant Domain Knowledge Engine"],
+            "path": "instant_custom_rule",
+            "profile": get_user_profile(phone),
+            "history": get_conversation_history(phone, limit=5)
+        }
+
     add_message_history(phone, "user", payload.message)
     res = execute_crag_pipeline(payload.message, village=payload.village or profile.get("village"))
     formatted_reply = format_for_whatsapp(res.get("answer", ""))

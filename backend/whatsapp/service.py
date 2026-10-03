@@ -180,6 +180,16 @@ async def process_whatsapp_message(
 
     user_text = message_text.strip()
 
+    # 3b. Check for instant custom/hardcoded response
+    from whatsapp.hardcoded_responses import get_hardcoded_response
+    custom_reply = get_hardcoded_response(user_text)
+    if custom_reply:
+        logger.info("Delivering instant custom response for message: '%s'", user_text)
+        add_message_history(clean_phone, "user", user_text)
+        add_message_history(clean_phone, "assistant", custom_reply)
+        await send_whatsapp_text(clean_phone, custom_reply)
+        return
+
     # 4. Update language preference if detected
     detected_lang = detect_language(user_text)
     if detected_lang != lang:
