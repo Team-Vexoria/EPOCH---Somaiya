@@ -106,6 +106,12 @@ export interface FpoAllocation {
   mandiName_mr: string;
   percentage: number;
   quantityQuintals: number;
+  dailyArrivalsQuintals?: number;
+  intakeSharePct?: number;
+  absorptionStatus?: 'SAFE' | 'MODERATE' | 'RISK';
+  absorptionLabel?: string;
+  absorptionLabel_mr?: string;
+  glutPricePenaltyAvoided?: number;
   expectedPrice: number;
   estimatedFreight: number;
   netRevenue: number;
@@ -139,6 +145,13 @@ export interface FpoPlanResponse {
   bestMandi: string;
   riskLevel: 'LOW' | 'MEDIUM' | 'HIGH';
   allocations: FpoAllocation[];
+  totalGlutLossAvoided?: number;
+  singleDumpSharePct?: number;
+  singleDumpMandiName?: string;
+  priceDepressionPerQtl?: number;
+  maxIntakeSharePct?: number;
+  glutRiskExplanation?: string;
+  glutRiskExplanation_mr?: string;
 }
 
 export interface BacktestDecision {

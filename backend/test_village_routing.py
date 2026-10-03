@@ -137,7 +137,17 @@ def test_fastapi_endpoints():
     assert plan["totalTrucks"] == 5
     assert len(plan["allocations"]) == 3
     assert plan["extraRevenueEarned"] > 0
+    # Feature 2 Anti-Glut assertions
+    assert plan["totalGlutLossAvoided"] == 500 * 140
+    assert plan["singleDumpSharePct"] > 5.0
+    assert plan["maxIntakeSharePct"] <= 2.5
+    for a in plan["allocations"]:
+        assert a["dailyArrivalsQuintals"] > 0
+        assert a["intakeSharePct"] > 0
+        assert a["absorptionStatus"] in ("SAFE", "MODERATE", "RISK")
+        assert a["glutPricePenaltyAvoided"] == 140
     print(f"  ✅ POST /api/fpo/plan → {plan['hubName']} (50 MT, 5 Trucks, ~25 Farmers Pooled) | Extra Revenue: +₹{plan['extraRevenueEarned']:,} ({plan['percentageGain']}%)")
+    print(f"  🛡️ Anti-Glut Engine: Single dump risk was {plan['singleDumpSharePct']}% of {plan['singleDumpMandiName']}. Split allocation protected ₹{plan['totalGlutLossAvoided']:,} against APMC price depression!")
 
 if __name__ == "__main__":
     test_village_resolution()

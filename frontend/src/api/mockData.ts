@@ -488,17 +488,35 @@ export function generateMockFpoPlan(req: FpoPlanRequest): FpoPlanResponse {
   const basePrice = crop.defaultPricePerQuintal;
 
   // Split allocation across top 3 complimentary mandis to prevent market glut
+  const lasQty = Math.round(qty * 0.45);
+  const pimQty = Math.round(qty * 0.35);
+  const yeoQty = Math.round(qty * 0.2);
+
+  const lasCap = 25000;
+  const pimCap = 18000;
+  const yeoCap = 6500;
+
+  const lasShare = Math.round((lasQty / lasCap) * 1000) / 10;
+  const pimShare = Math.round((pimQty / pimCap) * 1000) / 10;
+  const yeoShare = Math.round((yeoQty / yeoCap) * 1000) / 10;
+
   const allocations = [
     {
       mandiId: 'lasalgaon',
       mandiName: 'Lasalgaon APMC',
       mandiName_mr: 'लासलगाव बाजार समिती',
       percentage: 45,
-      quantityQuintals: Math.round(qty * 0.45),
+      quantityQuintals: lasQty,
+      dailyArrivalsQuintals: lasCap,
+      intakeSharePct: lasShare,
+      absorptionStatus: 'SAFE' as const,
+      absorptionLabel: `Optimal Liquidity (${lasShare}% market share)`,
+      absorptionLabel_mr: `उत्तम तरलता (${lasShare}% बाजार वाटा)`,
+      glutPricePenaltyAvoided: 140,
       expectedPrice: basePrice + 210,
       estimatedFreight: calculateTransportCost(32, true),
       netRevenue: 0,
-      trucksNeeded: Math.ceil((qty * 0.45) / 100),
+      trucksNeeded: Math.ceil(lasQty / 100),
       dispatchDate: 'Tomorrow 04:00 AM',
       capacityWarning: 'Heavy arrivals expected after 10 AM',
     },
@@ -507,23 +525,36 @@ export function generateMockFpoPlan(req: FpoPlanRequest): FpoPlanResponse {
       mandiName: 'Pimpalgaon Baswant APMC',
       mandiName_mr: 'पिंपळगाव बसवंत बाजार समिती',
       percentage: 35,
-      quantityQuintals: Math.round(qty * 0.35),
+      quantityQuintals: pimQty,
+      dailyArrivalsQuintals: pimCap,
+      intakeSharePct: pimShare,
+      absorptionStatus: 'SAFE' as const,
+      absorptionLabel: `Deep Trade Liquidity (${pimShare}% market share)`,
+      absorptionLabel_mr: `मोठी व्यापारी मागणी (${pimShare}% बाजार वाटा)`,
+      glutPricePenaltyAvoided: 140,
       expectedPrice: basePrice + 175,
       estimatedFreight: calculateTransportCost(28, true),
       netRevenue: 0,
-      trucksNeeded: Math.ceil((qty * 0.35) / 100),
+      trucksNeeded: Math.ceil(pimQty / 100),
       dispatchDate: 'Day 3 Morning',
+      capacityWarning: 'Strong wholesale buyer demand (18,000 qtl/day).',
     },
     {
       mandiId: 'yeola',
       mandiName: 'Yeola APMC',
       mandiName_mr: 'येवला बाजार समिती',
       percentage: 20,
-      quantityQuintals: Math.round(qty * 0.2),
+      quantityQuintals: yeoQty,
+      dailyArrivalsQuintals: yeoCap,
+      intakeSharePct: yeoShare,
+      absorptionStatus: 'SAFE' as const,
+      absorptionLabel: `Retail Buying (${yeoShare}% safe absorption)`,
+      absorptionLabel_mr: `किरकोळ खरेदी (${yeoShare}% सुरक्षित खप)`,
+      glutPricePenaltyAvoided: 140,
       expectedPrice: basePrice + 130,
       estimatedFreight: calculateTransportCost(45, true),
       netRevenue: 0,
-      trucksNeeded: Math.ceil((qty * 0.2) / 100),
+      trucksNeeded: Math.ceil(yeoQty / 100),
       dispatchDate: 'Day 5 Morning',
       capacityWarning: 'Steady retail trader buying',
     },
@@ -539,6 +570,12 @@ export function generateMockFpoPlan(req: FpoPlanRequest): FpoPlanResponse {
   const baselineNearestNet = basePrice - 45; // if dumped immediately at nearest local mandi
   const baselineRevenue = baselineNearestNet * qty;
   const extraRevenue = totalRevenue - baselineRevenue;
+
+  const nearestCap = 4000;
+  const singleDumpSharePct = Math.round((qty / nearestCap) * 1000) / 10;
+  const priceDepressionPerQtl = 140;
+  const totalGlutLossAvoided = qty * priceDepressionPerQtl;
+  const maxIntakeSharePct = Math.max(lasShare, pimShare, yeoShare);
 
   return {
     totalQuantity: qty,
@@ -558,6 +595,13 @@ export function generateMockFpoPlan(req: FpoPlanRequest): FpoPlanResponse {
     bestMandi: 'Lasalgaon APMC',
     riskLevel: 'LOW',
     allocations,
+    totalGlutLossAvoided,
+    singleDumpSharePct,
+    singleDumpMandiName: `${village.name} Local APMC`,
+    priceDepressionPerQtl,
+    maxIntakeSharePct,
+    glutRiskExplanation: `Dumping ${qty} qtl into a single local mandi would capture ~${singleDumpSharePct}% of daily intake, triggering a ~₹140/qtl auction price depression. Multi-mandi splitting caps daily share at ${maxIntakeSharePct}%, protecting ₹${totalGlutLossAvoided.toLocaleString('en-IN')} in farmer value.`,
+    glutRiskExplanation_mr: `स्थानिक बाजार समितीत एकरकमी ${qty} क्विंटल ओतल्यास आवकेचा वाटा ~${singleDumpSharePct}% होईल, ज्यामुळे प्रति क्विंटल सुमारे ₹१४० ची घसरण होईल. ३ बाजारांमध्ये विभागणी केल्याने वाटा कमाल ${maxIntakeSharePct}% राहून ₹${totalGlutLossAvoided.toLocaleString('en-IN')} चा तोटा टळतो.`,
   };
 }
 

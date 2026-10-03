@@ -82,27 +82,27 @@ VILLAGES: Dict[str, Dict[str, Any]] = {
 # ────────────────────────────────────────────────────────────────
 
 MANDIS: Dict[str, Dict[str, Any]] = {
-    "lasalgaon":  {"name": "Lasalgaon APMC",          "name_mr": "लासलगाव",     "lat": 20.1472, "lng": 74.2262, "taluka": "Niphad"},
-    "pimpalgaon": {"name": "Pimpalgaon Baswant APMC", "name_mr": "पिंपळगाव",    "lat": 20.1706, "lng": 73.9856, "taluka": "Niphad"},
-    "nashik":     {"name": "Nashik (Panchavati) APMC","name_mr": "नाशिक",       "lat": 20.0110, "lng": 73.7903, "taluka": "Nashik"},
-    "yeola":      {"name": "Yeola APMC",              "name_mr": "येवला",       "lat": 20.0382, "lng": 74.4891, "taluka": "Yeola"},
-    "manmad":     {"name": "Manmad APMC",             "name_mr": "मनमाड",       "lat": 20.2508, "lng": 74.4394, "taluka": "Nandgaon"},
-    "sinnar":     {"name": "Sinnar APMC",             "name_mr": "सिन्नर",      "lat": 19.8510, "lng": 73.9930, "taluka": "Sinnar"},
-    "dindori":    {"name": "Dindori APMC",            "name_mr": "दिंडोरी",     "lat": 20.2014, "lng": 73.8340, "taluka": "Dindori"},
-    "niphad":     {"name": "Niphad APMC",             "name_mr": "निफाड",       "lat": 20.0898, "lng": 74.1082, "taluka": "Niphad"},
-    "chandwad":   {"name": "Chandwad APMC",           "name_mr": "चांदवड",      "lat": 20.3275, "lng": 74.2407, "taluka": "Chandwad"},
-    "malegaon":   {"name": "Malegaon APMC",           "name_mr": "मालेगाव",     "lat": 20.5539, "lng": 74.5288, "taluka": "Malegaon"},
-    "satana":     {"name": "Satana (Baglan) APMC",    "name_mr": "सटाणा",       "lat": 20.5912, "lng": 74.2045, "taluka": "Baglan"},
-    "nandgaon":   {"name": "Nandgaon APMC",           "name_mr": "नांदगाव",     "lat": 20.3128, "lng": 74.6593, "taluka": "Nandgaon"},
-    "kalwan":     {"name": "Kalwan APMC",             "name_mr": "कळवण",        "lat": 20.4905, "lng": 73.9972, "taluka": "Kalwan"},
-    "igatpuri":   {"name": "Igatpuri (Ghoti) APMC",   "name_mr": "इगतपुरी",     "lat": 19.7027, "lng": 73.5583, "taluka": "Igatpuri"},
+    "lasalgaon":  {"name": "Lasalgaon APMC",          "name_mr": "लासलगाव",     "lat": 20.1472, "lng": 74.2262, "taluka": "Niphad",     "daily_capacity_qtl": 25000},
+    "pimpalgaon": {"name": "Pimpalgaon Baswant APMC", "name_mr": "पिंपळगाव",    "lat": 20.1706, "lng": 73.9856, "taluka": "Niphad",     "daily_capacity_qtl": 18000},
+    "nashik":     {"name": "Nashik (Panchavati) APMC","name_mr": "नाशिक",       "lat": 20.0110, "lng": 73.7903, "taluka": "Nashik",     "daily_capacity_qtl": 12000},
+    "yeola":      {"name": "Yeola APMC",              "name_mr": "येवला",       "lat": 20.0382, "lng": 74.4891, "taluka": "Yeola",      "daily_capacity_qtl": 6500},
+    "manmad":     {"name": "Manmad APMC",             "name_mr": "मनमाड",       "lat": 20.2508, "lng": 74.4394, "taluka": "Nandgaon",   "daily_capacity_qtl": 3500},
+    "sinnar":     {"name": "Sinnar APMC",             "name_mr": "सिन्नर",      "lat": 19.8510, "lng": 73.9930, "taluka": "Sinnar",     "daily_capacity_qtl": 4500},
+    "dindori":    {"name": "Dindori APMC",            "name_mr": "दिंडोरी",     "lat": 20.2014, "lng": 73.8340, "taluka": "Dindori",    "daily_capacity_qtl": 4000},
+    "niphad":     {"name": "Niphad APMC",             "name_mr": "निफाड",       "lat": 20.0898, "lng": 74.1082, "taluka": "Niphad",     "daily_capacity_qtl": 4000},
+    "chandwad":   {"name": "Chandwad APMC",           "name_mr": "चांदवड",      "lat": 20.3275, "lng": 74.2407, "taluka": "Chandwad",   "daily_capacity_qtl": 5000},
+    "malegaon":   {"name": "Malegaon APMC",           "name_mr": "मालेगाव",     "lat": 20.5539, "lng": 74.5288, "taluka": "Malegaon",   "daily_capacity_qtl": 10000},
+    "satana":     {"name": "Satana (Baglan) APMC",    "name_mr": "सटाणा",       "lat": 20.5912, "lng": 74.2045, "taluka": "Baglan",     "daily_capacity_qtl": 7000},
+    "nandgaon":   {"name": "Nandgaon APMC",           "name_mr": "नांदगाव",     "lat": 20.3128, "lng": 74.6593, "taluka": "Nandgaon",   "daily_capacity_qtl": 3000},
+    "kalwan":     {"name": "Kalwan APMC",             "name_mr": "कळवण",        "lat": 20.4905, "lng": 73.9972, "taluka": "Kalwan",     "daily_capacity_qtl": 3500},
+    "igatpuri":   {"name": "Igatpuri (Ghoti) APMC",   "name_mr": "इगतपुरी",     "lat": 19.7027, "lng": 73.5583, "taluka": "Igatpuri",   "daily_capacity_qtl": 2500},
     # Additional mandis from our historical data
-    "ahmednagar": {"name": "Ahmednagar APMC",         "name_mr": "अहमदनगर",     "lat": 19.0948, "lng": 74.7480, "taluka": "Ahmednagar"},
-    "kopargaon":  {"name": "Kopargaon APMC",          "name_mr": "कोपरगाव",     "lat": 19.8787, "lng": 74.4771, "taluka": "Kopargaon"},
-    "sangamner":  {"name": "Sangamner APMC",          "name_mr": "संगमनेर",      "lat": 19.5669, "lng": 74.2094, "taluka": "Sangamner"},
-    "rahata":     {"name": "Rahata APMC",             "name_mr": "राहाता",       "lat": 19.7103, "lng": 74.4812, "taluka": "Rahata"},
-    "shrirampur": {"name": "Shrirampur APMC",         "name_mr": "श्रीरामपूर",   "lat": 19.6120, "lng": 74.6538, "taluka": "Shrirampur"},
-    "rahuri":     {"name": "Rahuri APMC",             "name_mr": "राहुरी",       "lat": 19.3932, "lng": 74.6471, "taluka": "Rahuri"},
+    "ahmednagar": {"name": "Ahmednagar APMC",         "name_mr": "अहमदनगर",     "lat": 19.0948, "lng": 74.7480, "taluka": "Ahmednagar", "daily_capacity_qtl": 8000},
+    "kopargaon":  {"name": "Kopargaon APMC",          "name_mr": "कोपरगाव",     "lat": 19.8787, "lng": 74.4771, "taluka": "Kopargaon",  "daily_capacity_qtl": 6000},
+    "sangamner":  {"name": "Sangamner APMC",          "name_mr": "संगमनेर",      "lat": 19.5669, "lng": 74.2094, "taluka": "Sangamner",  "daily_capacity_qtl": 5500},
+    "rahata":     {"name": "Rahata APMC",             "name_mr": "राहाता",       "lat": 19.7103, "lng": 74.4812, "taluka": "Rahata",     "daily_capacity_qtl": 5000},
+    "shrirampur": {"name": "Shrirampur APMC",         "name_mr": "श्रीरामपूर",   "lat": 19.6120, "lng": 74.6538, "taluka": "Shrirampur", "daily_capacity_qtl": 4500},
+    "rahuri":     {"name": "Rahuri APMC",             "name_mr": "राहुरी",       "lat": 19.3932, "lng": 74.6471, "taluka": "Rahuri",     "daily_capacity_qtl": 4000},
 }
 
 
@@ -675,60 +675,110 @@ def generate_fpo_plan_data(
             "price": price_data["forecast_price"],
             "name": m["name"],
             "name_mr": m["name_mr"],
+            "daily_capacity": m.get("daily_capacity_qtl", 10000),
         }
+
+    # Find nearest mandi to evaluate single-mandi local dump penalty
+    nearest_mandi_id = min(
+        MANDIS.keys(),
+        key=lambda mid: haversine_km(village["lat"], village["lng"], MANDIS[mid]["lat"], MANDIS[mid]["lng"])
+    )
+    nearest_mandi = MANDIS[nearest_mandi_id]
+    nearest_dist = haversine_km(village["lat"], village["lng"], nearest_mandi["lat"], nearest_mandi["lng"])
+    nearest_mandi_cap = nearest_mandi.get("daily_capacity_qtl", 4000)
+    single_dump_share_pct = round((quantity / nearest_mandi_cap) * 100, 1)
 
     las = get_mandi_metrics("lasalgaon")
     pim = get_mandi_metrics("pimpalgaon")
     yeo = get_mandi_metrics("yeola")
 
-    allocations = [
-        {
-            "mandiId": "lasalgaon",
-            "mandiName": las["name"],
-            "mandiName_mr": las["name_mr"],
-            "percentage": 45,
-            "quantityQuintals": round(quantity * 0.45),
-            "expectedPrice": las["price"],
-            "estimatedFreight": las["freight"],
-            "netRevenue": round((las["price"] - las["freight"]) * (quantity * 0.45)),
-            "trucksNeeded": math.ceil((quantity * 0.45) / 100),
-            "dispatchDate": "Tomorrow 04:00 AM",
-            "capacityWarning": "High liquidity (25,000 qtl/day daily intake). Low glut risk."
-        },
-        {
-            "mandiId": "pimpalgaon",
-            "mandiName": pim["name"],
-            "mandiName_mr": pim["name_mr"],
-            "percentage": 35,
-            "quantityQuintals": round(quantity * 0.35),
-            "expectedPrice": pim["price"],
-            "estimatedFreight": pim["freight"],
-            "netRevenue": round((pim["price"] - pim["freight"]) * (quantity * 0.35)),
-            "trucksNeeded": math.ceil((quantity * 0.35) / 100),
-            "dispatchDate": "Day 3 Morning",
-            "capacityWarning": "Strong wholesale buyer demand (18,000 qtl/day)."
-        },
-        {
-            "mandiId": "yeola",
-            "mandiName": yeo["name"],
-            "mandiName_mr": yeo["name_mr"],
-            "percentage": 20,
-            "quantityQuintals": round(quantity * 0.20),
-            "expectedPrice": yeo["price"],
-            "estimatedFreight": yeo["freight"],
-            "netRevenue": round((yeo["price"] - yeo["freight"]) * (quantity * 0.20)),
-            "trucksNeeded": math.ceil((quantity * 0.20) / 100),
-            "dispatchDate": "Day 5 Morning",
-            "capacityWarning": "Retail trader premium. Absorbs up to 20% without price depression."
+    def build_allocation(m_info: dict, mid: str, pct: int, dispatch_slot: str, note: str) -> dict:
+        qtl = round(quantity * (pct / 100.0))
+        daily_cap = m_info["daily_capacity"]
+        share_pct = round((qtl / daily_cap) * 100, 1)
+
+        if share_pct <= 2.5:
+            status = "SAFE"
+            label = f"Optimal Liquidity ({share_pct}% market share)"
+            label_mr = f"उत्तम तरलता ({share_pct}% बाजार वाटा)"
+        elif share_pct <= 5.0:
+            status = "MODERATE"
+            label = f"Balanced Absorption ({share_pct}% market share)"
+            label_mr = f"संतुलित खप ({share_pct}% बाजार वाटा)"
+        else:
+            status = "RISK"
+            label = f"Glut Risk ({share_pct}% daily share - stagger recommended)"
+            label_mr = f"अतिरिक्त आवक धोका ({share_pct}% वाटा - टप्पे आवश्यक)"
+
+        net_rev = round((m_info["price"] - m_info["freight"]) * qtl)
+        trucks = math.ceil(qtl / 100.0)
+
+        return {
+            "mandiId": mid,
+            "mandiName": m_info["name"],
+            "mandiName_mr": m_info["name_mr"],
+            "percentage": pct,
+            "quantityQuintals": qtl,
+            "dailyArrivalsQuintals": daily_cap,
+            "intakeSharePct": share_pct,
+            "absorptionStatus": status,
+            "absorptionLabel": label,
+            "absorptionLabel_mr": label_mr,
+            "glutPricePenaltyAvoided": 140,
+            "expectedPrice": m_info["price"],
+            "estimatedFreight": m_info["freight"],
+            "netRevenue": net_rev,
+            "trucksNeeded": trucks,
+            "dispatchDate": dispatch_slot,
+            "capacityWarning": note,
         }
+
+    allocations = [
+        build_allocation(
+            las,
+            "lasalgaon",
+            45,
+            "Tomorrow 04:00 AM",
+            "High liquidity (25,000 qtl/day daily intake). Low glut risk."
+        ),
+        build_allocation(
+            pim,
+            "pimpalgaon",
+            35,
+            "Day 3 Morning",
+            "Strong wholesale buyer demand (18,000 qtl/day)."
+        ),
+        build_allocation(
+            yeo,
+            "yeola",
+            20,
+            "Day 5 Morning",
+            "Retail trader premium. Absorbs up to 20% without price depression."
+        )
     ]
 
     total_revenue = sum(a["netRevenue"] for a in allocations)
-    nearest_dist = min(haversine_km(village["lat"], village["lng"], m["lat"], m["lng"]) for m in MANDIS.values())
     baseline_freight = freight_cost(nearest_dist)["total_per_qtl"]
     baseline_net_per_qtl = max(100, base_price - baseline_freight - 35)
     baseline_revenue = baseline_net_per_qtl * quantity
     extra_revenue = total_revenue - baseline_revenue
+
+    # Anti-glut market protection metrics
+    price_depression_per_qtl = 140  # ₹/qtl discount traders bid when single dump hits >8% APMC volume
+    total_glut_loss_avoided = quantity * price_depression_per_qtl
+    max_intake_share_pct = max(a["intakeSharePct"] for a in allocations)
+
+    glut_risk_explanation = (
+        f"Dumping the full {quantity} qtl lot into {nearest_mandi['name']} would seize {single_dump_share_pct}% "
+        f"of its daily arrivals, causing commission traders to lower opening auction bids by ~₹{price_depression_per_qtl}/qtl. "
+        f"Our multi-mandi split keeps every destination under {max_intake_share_pct}% intake share, protecting "
+        f"₹{total_glut_loss_avoided:,} in auction realizations."
+    )
+    glut_risk_explanation_mr = (
+        f"संपूर्ण {quantity} क्विंटल माल एकट्या {nearest_mandi['name_mr']} मध्ये ओतल्यास तो एकूण दैनंदिन आवकेच्या {single_dump_share_pct}% "
+        f"बनेल, ज्यामुळे व्यापारी बोली प्रति क्विंटल ₹{price_depression_per_qtl} ने पाडतील. "
+        f"३ बाजारांमध्ये विभागणी केल्याने कमाल वाटा {max_intake_share_pct}% खाली राहतो आणि ₹{total_glut_loss_avoided:,} चे नुकसान टळते."
+    )
 
     return {
         "totalQuantity": quantity,
@@ -747,7 +797,14 @@ def generate_fpo_plan_data(
         "percentageGain": round((extra_revenue / baseline_revenue) * 100, 1) if baseline_revenue else 0.0,
         "bestMandi": "Lasalgaon APMC",
         "riskLevel": "LOW",
-        "allocations": allocations
+        "allocations": allocations,
+        "totalGlutLossAvoided": total_glut_loss_avoided,
+        "singleDumpSharePct": single_dump_share_pct,
+        "singleDumpMandiName": nearest_mandi["name"],
+        "priceDepressionPerQtl": price_depression_per_qtl,
+        "maxIntakeSharePct": max_intake_share_pct,
+        "glutRiskExplanation": glut_risk_explanation,
+        "glutRiskExplanation_mr": glut_risk_explanation_mr,
     }
 
 
