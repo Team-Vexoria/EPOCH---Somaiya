@@ -32,18 +32,18 @@ export const CROPS: Record<string, Crop & { icon: string; name: string; defaultP
     ...CROPS_LIST[0],
     icon: '🧅',
     name: 'Onion',
-    defaultPricePerQuintal: 2150,
+    defaultPricePerQuintal: 2450,
   },
   tomato: {
     ...CROPS_LIST[1],
     icon: '🍅',
     name: 'Tomato',
-    defaultPricePerQuintal: 1650,
+    defaultPricePerQuintal: 1850,
   },
   soybean: {
     ...CROPS_LIST[2],
     icon: '🫘',
     name: 'Soybean',
-    defaultPricePerQuintal: 4400,
+    defaultPricePerQuintal: 4850,
   },
 };
