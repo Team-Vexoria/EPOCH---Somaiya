@@ -535,6 +535,106 @@ def get_mandis_list() -> List[dict]:
     ]
 
 
+# ────────────────────────────────────────────────────────────────
+# FPO Aggregation Clusters Registry (Taluka Packhouses & Depots)
+# ────────────────────────────────────────────────────────────────
+FPO_CLUSTERS: Dict[str, Dict[str, Any]] = {
+    "niphad_rural": {
+        "id": "niphad_rural",
+        "name": "Niphad Central Packhouse",
+        "name_mr": "निफाड मध्यवर्ती पॅकहाऊस",
+        "taluka": "Niphad",
+        "registered_members": 420,
+        "cluster_type": "Onion & Soybean Aggregation Hub",
+        "cluster_type_mr": "कांदा व सोयाबीन संकलन केंद्र",
+        "lat": 20.0898,
+        "lng": 74.1082,
+    },
+    "dindori_v": {
+        "id": "dindori_v",
+        "name": "Dindori Agri Cluster Depot",
+        "name_mr": "दिंडोरी कृषी संकलन डेपो",
+        "taluka": "Dindori",
+        "registered_members": 380,
+        "cluster_type": "Tomato & Perishable Cold Hub",
+        "cluster_type_mr": "टोमॅटो व भाजीपाला संकलन केंद्र",
+        "lat": 20.2014,
+        "lng": 73.8340,
+    },
+    "kalwan_v": {
+        "id": "kalwan_v",
+        "name": "Kalwan Tribal FPO Facility",
+        "name_mr": "कळवण शेतकरी उत्पादक केंद्र",
+        "taluka": "Kalwan",
+        "registered_members": 290,
+        "cluster_type": "Kharif Onion & Chana Hub",
+        "cluster_type_mr": "खरीप कांदा व कडधान्य केंद्र",
+        "lat": 20.4905,
+        "lng": 73.9972,
+    },
+    "sinnar_v": {
+        "id": "sinnar_v",
+        "name": "Sinnar South Aggregation Hub",
+        "name_mr": "सिन्नर दक्षिण संकलन केंद्र",
+        "taluka": "Sinnar",
+        "registered_members": 310,
+        "cluster_type": "Soybean & Coarse Grain Depot",
+        "cluster_type_mr": "सोयाबीन व धान्य संकलन डेपो",
+        "lat": 19.8510,
+        "lng": 73.9930,
+    },
+    "yeola_v": {
+        "id": "yeola_v",
+        "name": "Yeola Rural Farmer Center",
+        "name_mr": "येवला ग्रामीण शेतकरी केंद्र",
+        "taluka": "Yeola",
+        "registered_members": 260,
+        "cluster_type": "Late Kharif Onion Hub",
+        "cluster_type_mr": "रांगडा कांदा संकलन केंद्र",
+        "lat": 20.0382,
+        "lng": 74.4891,
+    },
+    "satana_v": {
+        "id": "satana_v",
+        "name": "Satana Baglan Valley Packhouse",
+        "name_mr": "सटाणा बागलाण व्हॅली पॅकहाऊस",
+        "taluka": "Baglan",
+        "registered_members": 350,
+        "cluster_type": "Export Quality Red Onion Depot",
+        "cluster_type_mr": "निर्यातक्षम लाल कांदा केंद्र",
+        "lat": 20.5912,
+        "lng": 74.2045,
+    },
+    "chandwad_v": {
+        "id": "chandwad_v",
+        "name": "Chandwad Highland Depot",
+        "name_mr": "चांदवड मध्यवर्ती डेपो",
+        "taluka": "Chandwad",
+        "registered_members": 240,
+        "cluster_type": "Summer Onion Storage & Dispatch",
+        "cluster_type_mr": "उन्हाळ कांदा साठवणूक व विक्री",
+        "lat": 20.3275,
+        "lng": 74.2407,
+    },
+    "malegaon_v": {
+        "id": "malegaon_v",
+        "name": "Malegaon Commercial Aggregation Yard",
+        "name_mr": "मालेगाव व्यावसायिक संकलन आवार",
+        "taluka": "Malegaon",
+        "registered_members": 410,
+        "cluster_type": "North Nashik Multi-Crop Depot",
+        "cluster_type_mr": "उत्तर नाशिक बहुपीक डेपो",
+        "lat": 20.5539,
+        "lng": 74.5288,
+    },
+}
+
+
+def get_fpo_clusters_list() -> List[dict]:
+    """Return all defined FPO clusters as a list for API serialization."""
+    return list(FPO_CLUSTERS.values())
+
+
 def generate_fpo_plan_data(
     crop_id: str = "onion",
     quantity: int = 300,
@@ -547,9 +647,20 @@ def generate_fpo_plan_data(
     staggered dispatch slots, and financial gain vs single-mandi local dumping.
     """
     v_id = resolve_village_name(village_id) or "niphad_rural"
+    cluster_info = FPO_CLUSTERS.get(v_id)
     village = VILLAGES.get(v_id, VILLAGES["niphad_rural"])
     crop_info = CROPS.get(crop_id, CROPS["onion"])
     base_price = crop_info["default_price"]
+
+    # FPO Bulk Scale Metric Conversions
+    metric_tonnes = round(quantity / 10.0, 1)
+    total_trucks = math.ceil(quantity / 100.0)
+    members_pooled = math.ceil(quantity / 20.0)
+    bulk_freight_savings = quantity * 25  # ~₹25/qtl saved by 10-wheeler fleet over retail tempos
+
+    hub_name = cluster_info["name"] if cluster_info else f"{village['name']} Packhouse"
+    hub_name_mr = cluster_info["name_mr"] if cluster_info else f"{village.get('name_mr', village['name'])} संकलन केंद्र"
+    registered_members = cluster_info["registered_members"] if cluster_info else 300
 
     def get_mandi_metrics(mid: str):
         m = MANDIS.get(mid, MANDIS["lasalgaon"])
@@ -621,6 +732,15 @@ def generate_fpo_plan_data(
 
     return {
         "totalQuantity": quantity,
+        "metricTonnes": metric_tonnes,
+        "totalTrucks": total_trucks,
+        "membersPooled": members_pooled,
+        "bulkFreightSavings": bulk_freight_savings,
+        "hubId": v_id,
+        "hubName": hub_name,
+        "hubName_mr": hub_name_mr,
+        "registeredMembers": registered_members,
+        "taluka": village.get("taluka", "Nashik"),
         "totalRevenue": total_revenue,
         "baselineRevenue": baseline_revenue,
         "extraRevenueEarned": extra_revenue,

@@ -14,6 +14,8 @@ import {
   ArrowUpRight,
   ShieldCheck,
   Info,
+  Scale,
+  Users,
 } from 'lucide-react';
 import {
   PieChart,
@@ -29,6 +31,7 @@ import {
 } from 'recharts';
 import { CROPS } from '../config/crops';
 import { VILLAGES } from '../config/villages';
+import { FPO_CLUSTERS } from '../config/fpoHubs';
 import { fetchFpoPlan } from '../api/client';
 import type { FpoPlanResponse } from '../api/types';
 import { formatRupee } from '../i18n';
@@ -205,15 +208,24 @@ export const FpoPage: React.FC = () => {
               </select>
             </div>
 
-            {/* Total Quantity */}
+            {/* Total Quantity with Slider + Number Input */}
             <div>
               <div className="flex justify-between items-center mb-1">
                 <label className="text-sm font-bold text-neutral-ink">
                   {currentLang === 'mr' ? 'एकूण माल (क्विंटल)' : 'Total Lot Quantity'}
                 </label>
-                <span className="text-sm font-black text-primary bg-primary-subtle px-2 py-0.5 border border-primary">
-                  {quantity} Quintals
-                </span>
+                <div className="flex items-center gap-1">
+                  <input
+                    type="number"
+                    min="50"
+                    max="5000"
+                    step="25"
+                    value={quantity}
+                    onChange={(e) => setQuantity(Math.max(25, Number(e.target.value) || 50))}
+                    className="w-20 text-center font-black text-primary bg-primary-subtle border border-primary px-1 py-0.5 text-sm focus:outline-none"
+                  />
+                  <span className="text-sm font-bold text-neutral-ink">qtl</span>
+                </div>
               </div>
               <input
                 type="range"
@@ -224,29 +236,49 @@ export const FpoPage: React.FC = () => {
                 onChange={(e) => setQuantity(Number(e.target.value))}
                 className="w-full accent-primary h-2 bg-neutral-border cursor-pointer"
               />
-              <div className="flex justify-between text-xs text-neutral-muted mt-1">
-                <span>50 qtl</span>
-                <span>500 qtl</span>
-                <span>1000 qtl</span>
-                <span>2000 qtl</span>
+              {/* Presets */}
+              <div className="flex justify-between gap-1 mt-2">
+                {[100, 300, 500, 1000].map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => setQuantity(preset)}
+                    className={`text-sm px-2 py-1 font-bold border transition-colors ${
+                      quantity === preset
+                        ? 'bg-primary text-primary-fg border-neutral-ink'
+                        : 'bg-neutral-bg text-neutral-ink border-neutral-border hover:bg-neutral-surface'
+                    }`}
+                  >
+                    {preset} qtl
+                  </button>
+                ))}
               </div>
             </div>
 
-            {/* Aggregation Center Village */}
+            {/* Aggregation Center Hub */}
             <div>
               <label className="block text-sm font-bold text-neutral-ink mb-1">
-                {currentLang === 'mr' ? 'FPO संकलन केंद्र (गाव)' : 'FPO Aggregation Cluster'}
+                {currentLang === 'mr' ? 'FPO संकलन केंद्र (पॅकहाऊस)' : 'FPO Aggregation Hub'}
               </label>
               <select
                 value={selectedVillageId}
                 onChange={(e) => setSelectedVillageId(e.target.value)}
                 className="w-full bg-neutral-surface border-2 border-neutral-border px-3 py-2 text-base font-semibold text-neutral-ink focus:border-primary focus:outline-none"
               >
-                {VILLAGES.map((v) => (
-                  <option key={v.id} value={v.id}>
-                    {currentLang === 'mr' ? v.name_mr : currentLang === 'hi' ? v.name_hi : v.name} ({v.taluka})
-                  </option>
-                ))}
+                <optgroup label={currentLang === 'mr' ? '🏢 मुख्य FPO संकलन केंद्र' : '🏢 Major FPO Cluster Hubs'}>
+                  {FPO_CLUSTERS.map((hub) => (
+                    <option key={hub.id} value={hub.id}>
+                      {currentLang === 'mr' ? hub.name_mr : hub.name} ({hub.registeredMembers} {currentLang === 'mr' ? 'सदस्य' : 'members'})
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label={currentLang === 'mr' ? '📍 इतर स्थानिक गावे' : '📍 Other Taluka Villages'}>
+                  {VILLAGES.filter((v) => !FPO_CLUSTERS.some((h) => h.id === v.id)).map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {currentLang === 'mr' ? v.name_mr : currentLang === 'hi' ? v.name_hi : v.name} ({v.taluka})
+                    </option>
+                  ))}
+                </optgroup>
               </select>
             </div>
 
@@ -266,6 +298,57 @@ export const FpoPage: React.FC = () => {
               </select>
             </div>
           </div>
+
+          {/* Live Bulk Scale & Pooling Metrics Banner */}
+          <div className="mt-4 pt-4 border-t-2 border-neutral-border grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="bg-neutral-bg border border-neutral-border p-2.5 flex items-center gap-2.5">
+              <Scale className="w-5 h-5 text-primary shrink-0" />
+              <div>
+                <div className="text-sm font-bold text-neutral-muted">
+                  {currentLang === 'mr' ? 'एकूण वजन (टन)' : 'Net Weight'}
+                </div>
+                <div className="text-base font-extrabold text-neutral-ink">
+                  {plan?.metricTonnes || (quantity / 10).toFixed(1)} MT ({quantity} qtl)
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-neutral-bg border border-neutral-border p-2.5 flex items-center gap-2.5">
+              <Truck className="w-5 h-5 text-secondary shrink-0" />
+              <div>
+                <div className="text-sm font-bold text-neutral-muted">
+                  {currentLang === 'mr' ? 'व्यावसायिक फ्लीट' : 'Commercial Fleet'}
+                </div>
+                <div className="text-base font-extrabold text-neutral-ink">
+                  {plan?.totalTrucks || Math.ceil(quantity / 100)} {t('fpo.trucks')} (10-Ton)
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-neutral-bg border border-neutral-border p-2.5 flex items-center gap-2.5">
+              <Users className="w-5 h-5 text-primary shrink-0" />
+              <div>
+                <div className="text-sm font-bold text-neutral-muted">
+                  {currentLang === 'mr' ? 'शेतकरी संकलन' : 'Member Pool'}
+                </div>
+                <div className="text-base font-extrabold text-neutral-ink">
+                  ~{plan?.membersPooled || Math.ceil(quantity / 20)} {currentLang === 'mr' ? 'शेतकरी सभासद' : 'Farmers Pooled'}
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-primary-subtle border border-primary p-2.5 flex items-center gap-2.5">
+              <CheckCircle className="w-5 h-5 text-sell shrink-0" />
+              <div>
+                <div className="text-sm font-bold text-neutral-muted">
+                  {currentLang === 'mr' ? 'वाहतूक बचत (घाऊक)' : 'Bulk Haulage Saving'}
+                </div>
+                <div className="text-base font-extrabold text-sell">
+                  +{formatRupee(plan?.bulkFreightSavings || quantity * 25)}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* KPI Cards Row */}
@@ -280,7 +363,7 @@ export const FpoPage: React.FC = () => {
               <div className="text-3xl font-black text-neutral-ink mt-2">
                 {formatRupee(plan.totalRevenue)}
               </div>
-              <div className="text-xs text-neutral-muted mt-1">
+              <div className="text-sm font-medium text-neutral-muted mt-1">
                 {plan.totalQuantity} quintals aggregated lot
               </div>
             </div>
@@ -289,14 +372,14 @@ export const FpoPage: React.FC = () => {
             <div className="bg-neutral-surface border-2 border-sell p-5 shadow-hard relative overflow-hidden">
               <div className="flex items-center justify-between text-sell text-sm font-bold">
                 <span>{t('fpo.kpiExtra')}</span>
-                <span className="bg-sell text-sell-fg font-black text-xs px-2 py-0.5 border border-neutral-ink">
+                <span className="bg-sell text-sell-fg font-black text-sm px-2 py-0.5 border border-neutral-ink">
                   +{plan.percentageGain}%
                 </span>
               </div>
               <div className="text-3xl font-black text-sell mt-2">
                 +{formatRupee(plan.extraRevenueEarned)}
               </div>
-              <div className="text-xs text-neutral-muted mt-1">
+              <div className="text-sm font-medium text-neutral-muted mt-1">
                 {currentLang === 'mr'
                   ? 'स्थानिक बाजारात एकरकमी टाकण्यापेक्षा'
                   : 'vs. single local mandi dumping'}
@@ -312,7 +395,7 @@ export const FpoPage: React.FC = () => {
               <div className="text-2xl font-black text-neutral-ink mt-2 truncate">
                 {plan.bestMandi}
               </div>
-              <div className="text-xs text-neutral-muted mt-1">
+              <div className="text-sm font-medium text-neutral-muted mt-1">
                 {currentLang === 'mr' ? 'सर्वाधिक कोटा (४५%)' : 'Receives 45% volume share'}
               </div>
             </div>
@@ -327,11 +410,11 @@ export const FpoPage: React.FC = () => {
                 <span className="text-2xl font-black text-sell">
                   {plan.riskLevel}
                 </span>
-                <span className="bg-primary-subtle text-neutral-ink text-xs px-2 py-0.5 border border-primary font-bold">
+                <span className="bg-primary-subtle text-neutral-ink text-sm px-2 py-0.5 border border-primary font-bold">
                   Diversified
                 </span>
               </div>
-              <div className="text-xs text-neutral-muted mt-1">
+              <div className="text-sm font-medium text-neutral-muted mt-1">
                 {currentLang === 'mr'
                   ? '३ बाजारांमध्ये विभागल्याने घसरण टळेल'
                   : 'Multi-mandi spread mitigates gluts'}
@@ -461,7 +544,7 @@ export const FpoPage: React.FC = () => {
                               {currentLang === 'mr' ? a.mandiName_mr : a.mandiName}
                             </div>
                             {a.capacityWarning && (
-                              <div className="flex items-center gap-1 text-xs text-hold font-bold mt-0.5">
+                              <div className="flex items-center gap-1 text-sm text-hold font-bold mt-0.5">
                                 <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
                                 <span>{a.capacityWarning}</span>
                               </div>
@@ -469,12 +552,12 @@ export const FpoPage: React.FC = () => {
                           </td>
                           <td className="py-3 px-3 text-center font-bold text-neutral-ink">
                             {a.percentage}%
-                            <div className="text-xs text-neutral-muted font-normal">
+                            <div className="text-sm text-neutral-muted font-normal">
                               {a.quantityQuintals} qtl
                             </div>
                           </td>
                           <td className="py-3 px-3 text-center">
-                            <span className="inline-block bg-neutral-surface border border-neutral-ink font-bold px-2 py-0.5 text-xs">
+                            <span className="inline-block bg-neutral-surface border border-neutral-ink font-bold px-2 py-0.5 text-sm">
                               {a.trucksNeeded} 🚛
                             </span>
                           </td>
@@ -483,7 +566,7 @@ export const FpoPage: React.FC = () => {
                               <Calendar className="w-4 h-4 text-primary shrink-0" />
                               <span>{a.dispatchDate}</span>
                             </div>
-                            <div className="text-xs text-neutral-muted">
+                            <div className="text-sm text-neutral-muted">
                               Freight: {formatRupee(a.estimatedFreight)}/qtl
                             </div>
                           </td>
@@ -491,7 +574,7 @@ export const FpoPage: React.FC = () => {
                             <div className="font-black text-sell text-base">
                               {formatRupee(a.netRevenue)}
                             </div>
-                            <div className="text-xs text-neutral-muted">
+                            <div className="text-sm text-neutral-muted">
                               @{formatRupee(a.expectedPrice)}/qtl
                             </div>
                           </td>
@@ -514,7 +597,7 @@ export const FpoPage: React.FC = () => {
                 </div>
 
                 <div className="text-right shrink-0">
-                  <span className="text-xs text-neutral-muted block">Estimated Freight Savings</span>
+                  <span className="text-sm text-neutral-muted block">Estimated Freight Savings</span>
                   <span className="font-black text-sell text-base">
                     +{formatRupee(plan.totalQuantity * 25)} saved
                   </span>
