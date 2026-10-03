@@ -2,10 +2,10 @@ import type { Language } from '../types';
 
 /**
  * Speech Recognition and Synthesis Service
- * Uses standard browser Web Speech APIs with graceful fallbacks.
+ * Supports Marathi (mr-IN), Hindi (hi-IN), and English (en-IN).
+ * Uses browser Web Speech API with Groq Whisper audio fallback.
  */
 
-// Global state to track active speech synthesis
 let isSpeakingActive = false;
 
 export function isSpeechRecognitionSupported(): boolean {
@@ -21,52 +21,66 @@ export function isSpeechSynthesisSupported(): boolean {
   return 'speechSynthesis' in window;
 }
 
-export function getLanguageCodeForSpeech(lang: Language): string {
-  switch (lang) {
-    case 'mr':
-      return 'mr-IN';
-    case 'hi':
-      return 'hi-IN';
-    case 'en':
-    default:
-      return 'en-IN';
+export function getLanguageCodeForSpeech(lang: Language | string): string {
+  const clean = (lang || 'mr').toLowerCase();
+  if (clean.startsWith('mr') || clean.includes('marathi')) {
+    return 'mr-IN';
   }
+  if (clean.startsWith('hi') || clean.includes('hindi')) {
+    return 'hi-IN';
+  }
+  return 'en-IN';
 }
 
 /**
- * Reads aloud given text using SpeechSynthesis in the chosen language.
+ * Reads aloud given text using SpeechSynthesis in the appropriate language voice.
  */
 export function speakText(
   text: string,
-  lang: Language,
+  lang: Language | string,
   onStart?: () => void,
   onEnd?: () => void
 ): void {
   if (!isSpeechSynthesisSupported()) return;
 
-  // Stop any currently speaking utterance
   stopSpeaking();
 
-  // Strip Markdown characters and HTML tags for natural speech
+  // Strip Markdown formatting and asterisks for natural human speech
   const plainText = text
-    .replace(/[#*`_~\[\]()]/g, ' ')
+    .replace(/[#*`_~\[\]()|]/g, ' ')
     .replace(/<[^>]*>/g, ' ')
+    .replace(/[-]{3,}/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 
   if (!plainText) return;
 
+  // Auto-detect language if text is in Devanagari vs Latin
+  let effectiveLangCode = getLanguageCodeForSpeech(lang);
+  const isDevanagari = /[\u0900-\u097F]/.test(plainText);
+  if (isDevanagari && !effectiveLangCode.startsWith('mr') && !effectiveLangCode.startsWith('hi')) {
+    // Check for Marathi-specific words
+    const isMarathi = /\b(आहे|नाही|करा|द्या|शेतकरी|लासलगाव|क्विंटल|बाजार)\b/.test(plainText);
+    effectiveLangCode = isMarathi ? 'mr-IN' : 'hi-IN';
+  }
+
   const utterance = new SpeechSynthesisUtterance(plainText);
-  const langCode = getLanguageCodeForSpeech(lang);
-  utterance.lang = langCode;
-  utterance.rate = 0.95; // Slightly slower for clarity in rural Indian context
+  utterance.lang = effectiveLangCode;
+  utterance.rate = 0.95; // Clear natural pacing for Indian context
   utterance.pitch = 1.0;
 
-  // Try matching a voice for the language
+  // Try matching system voice for the language
   const voices = window.speechSynthesis.getVoices();
+  const langPrefix = effectiveLangCode.split('-')[0].toLowerCase();
+
   const matchedVoice = voices.find(
-    (v) => v.lang.toLowerCase() === langCode.toLowerCase() || v.lang.startsWith(lang)
+    (v) =>
+      v.lang.toLowerCase() === effectiveLangCode.toLowerCase() ||
+      v.lang.toLowerCase().startsWith(langPrefix) ||
+      (langPrefix === 'mr' && v.name.toLowerCase().includes('marathi')) ||
+      (langPrefix === 'hi' && v.name.toLowerCase().includes('hindi'))
   );
+
   if (matchedVoice) {
     utterance.voice = matchedVoice;
   }
@@ -104,10 +118,10 @@ export function getIsSpeaking(): boolean {
 }
 
 /**
- * Creates and configures a SpeechRecognition instance for voice capture.
+ * Creates and configures a SpeechRecognition instance for real-time live voice capture.
  */
 export function createSpeechRecognizer(
-  lang: Language,
+  lang: Language | string,
   onInterim: (text: string) => void,
   onFinal: (text: string) => void,
   onError: (err: any) => void,
@@ -147,4 +161,59 @@ export function createSpeechRecognizer(
   };
 
   return recognizer;
+}
+
+/**
+ * Helper class to record audio via MediaRecorder for Groq Whisper transcription.
+ */
+export class AudioRecorder {
+  private mediaRecorder: MediaRecorder | null = null;
+  private audioChunks: Blob[] = [];
+  private stream: MediaStream | null = null;
+
+  async start(): Promise<void> {
+    this.audioChunks = [];
+    this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    
+    // Choose best supported audio mime type
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+      ? 'audio/webm;codecs=opus'
+      : MediaRecorder.isTypeSupported('audio/webm')
+      ? 'audio/webm'
+      : MediaRecorder.isTypeSupported('audio/mp4')
+      ? 'audio/mp4'
+      : '';
+
+    this.mediaRecorder = new MediaRecorder(this.stream, mimeType ? { mimeType } : undefined);
+    
+    this.mediaRecorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        this.audioChunks.push(event.data);
+      }
+    };
+
+    this.mediaRecorder.start(100);
+  }
+
+  async stop(): Promise<Blob> {
+    return new Promise((resolve) => {
+      if (!this.mediaRecorder) {
+        resolve(new Blob([], { type: 'audio/webm' }));
+        return;
+      }
+
+      this.mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(this.audioChunks, {
+          type: this.mediaRecorder?.mimeType || 'audio/webm',
+        });
+        if (this.stream) {
+          this.stream.getTracks().forEach((t) => t.stop());
+          this.stream = null;
+        }
+        resolve(audioBlob);
+      };
+
+      this.mediaRecorder.stop();
+    });
+  }
 }

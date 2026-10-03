@@ -66,9 +66,20 @@ export const MessageItem: React.FC<MessageItemProps> = ({
       stopSpeaking();
       setIsPlayingAudio(false);
     } else {
+      // Auto-detect message language from content
+      const isDevanagari = /[\u0900-\u097F]/.test(message.content);
+      let targetLang: Language = currentLang;
+      if (isDevanagari) {
+        // Marathi specific keywords check
+        const isMarathi = /\b(आहे|नाही|करा|द्या|शेतकरी|लासलगाव|क्विंटल|बाजार|भाडे|नफा)\b/.test(message.content);
+        targetLang = isMarathi ? 'mr' : 'hi';
+      } else {
+        targetLang = 'en';
+      }
+
       speakText(
         message.content,
-        currentLang,
+        targetLang,
         () => setIsPlayingAudio(true),
         () => setIsPlayingAudio(false)
       );

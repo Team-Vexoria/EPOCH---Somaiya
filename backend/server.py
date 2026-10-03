@@ -5,7 +5,7 @@ import json
 import asyncio
 from typing import List, Dict, Any, Optional
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
 from pydantic import BaseModel, Field
@@ -622,6 +622,66 @@ def post_fpo_plan_endpoint(req: FpoPlanRequestModel):
         village_id=req.village,
         horizon_days=req.horizonDays
     )
+
+
+@app.post("/api/transcribe")
+async def transcribe_audio_endpoint(
+    file: UploadFile = File(...),
+    language: Optional[str] = Form(None)
+):
+    """
+    Transcribe recorded audio file (WebM, WAV, MP3, MP4) into text using Groq Whisper-large-v3.
+    Accurately supports Marathi ('mr'), Hindi ('hi'), and English ('en').
+    """
+    import requests
+    api_key = os.environ.get("GROQ_API_KEY") or os.environ.get("LLM_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="GROQ_API_KEY is not configured on the server.")
+
+    audio_bytes = await file.read()
+    if not audio_bytes:
+        raise HTTPException(status_code=400, detail="Empty audio file received.")
+
+    headers = {
+        "Authorization": f"Bearer {api_key}"
+    }
+
+    files = {
+        "file": (file.filename or "recording.webm", audio_bytes, file.content_type or "audio/webm")
+    }
+
+    data = {
+        "model": "whisper-large-v3",
+        "temperature": "0.0"
+    }
+    if language:
+        # Map to 2-letter ISO code: mr, hi, en
+        lang_clean = language.strip().lower()
+        if "mr" in lang_clean or "marathi" in lang_clean:
+            data["language"] = "mr"
+        elif "hi" in lang_clean or "hindi" in lang_clean:
+            data["language"] = "hi"
+        elif "en" in lang_clean or "english" in lang_clean:
+            data["language"] = "en"
+
+    try:
+        response = requests.post(
+            "https://api.groq.com/openai/v1/audio/transcriptions",
+            headers=headers,
+            files=files,
+            data=data,
+            timeout=15
+        )
+        if response.status_code == 200:
+            result = response.json()
+            return JSONResponse(content={"text": result.get("text", "").strip(), "language": data.get("language")})
+        else:
+            return JSONResponse(
+                status_code=response.status_code,
+                content={"error": response.text}
+            )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Transcription error: {str(e)}")
 
 
 if __name__ == "__main__":

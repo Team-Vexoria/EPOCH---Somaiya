@@ -97,19 +97,21 @@ export async function fetchBacktest(crop = 'onion', _from = '', _to = ''): Promi
 }
 
 /**
- * 6. POST /api/transcribe (Whisper stub for Marathi/Hindi audio)
+ * 6. POST /api/transcribe (Whisper for Marathi, Hindi, and English audio)
  */
-export async function transcribeAudio(_audioBlob: Blob): Promise<{ text: string }> {
-  if (USE_MOCKS) {
-    await new Promise((r) => setTimeout(r, 500));
-    return { text: 'कांदा 30 क्विंटल लासलगाव कधी विकू?' };
-  }
+export async function transcribeAudio(audioBlob: Blob, language = 'mr'): Promise<{ text: string }> {
   const formData = new FormData();
-  formData.append('audio', _audioBlob);
-  const res = await fetch(`${API_BASE_URL}/api/transcribe`, {
-    method: 'POST',
-    body: formData,
-  });
-  if (!res.ok) throw new Error(`Transcribe API Error: ${res.statusText}`);
-  return await res.json();
+  formData.append('file', audioBlob, 'recording.webm');
+  formData.append('language', language);
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/transcribe`, {
+      method: 'POST',
+      body: formData,
+    });
+    if (!res.ok) throw new Error(`Transcribe API Error: ${res.statusText}`);
+    return await res.json();
+  } catch (err) {
+    console.warn('Backend transcribe API error:', err);
+    return { text: '' };
+  }
 }

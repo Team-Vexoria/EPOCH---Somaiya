@@ -1,10 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Mic, MicOff, Send, Square } from 'lucide-react';
+import { Mic, MicOff, Send, Square, Globe, Loader2, Sparkles } from 'lucide-react';
 import {
   isSpeechRecognitionSupported,
   createSpeechRecognizer,
+  AudioRecorder,
 } from '../../services/speech';
+import { transcribeAudio } from '../../api/client';
 import type { Language } from '../../types';
 
 interface InputBarProps {
@@ -23,12 +25,23 @@ export const InputBar: React.FC<InputBarProps> = ({
   const { t } = useTranslation();
   const [input, setInput] = useState('');
   const [isListening, setIsListening] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
   const [interimText, setInterimText] = useState('');
+  
+  // Dedicated voice language (allows farmer to speak in Marathi even if UI is in English)
+  const [voiceLang, setVoiceLang] = useState<Language>(language || 'mr');
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const recognizerRef = useRef<any>(null);
+  const audioRecorderRef = useRef<AudioRecorder | null>(null);
+  const hasRecognizedTextRef = useRef(false);
 
-  const speechSupported = isSpeechRecognitionSupported();
+  // Sync voiceLang if prop changes initially
+  useEffect(() => {
+    if (language) {
+      setVoiceLang(language);
+    }
+  }, [language]);
 
   // Auto-grow textarea up to max 6 lines (~144px)
   useEffect(() => {
@@ -41,31 +54,74 @@ export const InputBar: React.FC<InputBarProps> = ({
     }
   }, [input, interimText]);
 
-  // Handle Speech Recognition toggle
-  const handleToggleMic = () => {
-    if (!speechSupported) return;
-
-    if (isListening) {
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
       recognizerRef.current?.stop();
+    };
+  }, []);
+
+  // Handle Speech Recognition toggle
+  const handleToggleMic = async () => {
+    if (isListening) {
+      // User tapped to stop recording
       setIsListening(false);
+      recognizerRef.current?.stop();
+
+      // If MediaRecorder was active and WebSpeech captured nothing, fallback to Whisper
+      if (audioRecorderRef.current) {
+        try {
+          setIsTranscribing(true);
+          const audioBlob = await audioRecorderRef.current.stop();
+          if (!hasRecognizedTextRef.current && audioBlob.size > 1000) {
+            const res = await transcribeAudio(audioBlob, voiceLang);
+            if (res.text) {
+              setInput((prev) => (prev ? `${prev} ${res.text}` : res.text));
+            }
+          }
+        } catch (err) {
+          console.warn('Whisper fallback error:', err);
+        } finally {
+          setIsTranscribing(false);
+          audioRecorderRef.current = null;
+        }
+      }
+
       setInterimText('');
       return;
     }
 
+    // Start recording & listening
+    setIsListening(true);
+    setInterimText('');
+    hasRecognizedTextRef.current = false;
+
+    // Start MediaRecorder in parallel for high-fidelity audio capture fallback
+    try {
+      const recorder = new AudioRecorder();
+      await recorder.start();
+      audioRecorderRef.current = recorder;
+    } catch (e) {
+      console.warn('MediaRecorder not available or permission denied, using browser STT:', e);
+    }
+
+    // Start browser SpeechRecognition
     try {
       const recognizer = createSpeechRecognizer(
-        language,
+        voiceLang,
         (interim) => {
           setInterimText(interim);
         },
         (final) => {
-          setInput((prev) => (prev ? `${prev} ${final}` : final));
-          setInterimText('');
+          if (final.trim()) {
+            hasRecognizedTextRef.current = true;
+            setInput((prev) => (prev ? `${prev} ${final}` : final));
+            setInterimText('');
+          }
         },
-        (err) => {
-          console.error('Speech recognition error:', err);
-          setIsListening(false);
-          setInterimText('');
+        async (err) => {
+          console.warn('Browser speech recognition notice:', err);
+          // If browser speech fails, Whisper audio will be processed on stop
         },
         () => {
           setIsListening(false);
@@ -76,11 +132,9 @@ export const InputBar: React.FC<InputBarProps> = ({
       if (recognizer) {
         recognizerRef.current = recognizer;
         recognizer.start();
-        setIsListening(true);
       }
     } catch (err) {
-      console.error('Could not start speech recognition:', err);
-      setIsListening(false);
+      console.warn('SpeechRecognition start failed, relying on audio recording:', err);
     }
   };
 
@@ -102,6 +156,7 @@ export const InputBar: React.FC<InputBarProps> = ({
 
     if (isListening) {
       recognizerRef.current?.stop();
+      audioRecorderRef.current?.stop().catch(() => {});
       setIsListening(false);
       setInterimText('');
     }
@@ -115,42 +170,98 @@ export const InputBar: React.FC<InputBarProps> = ({
     }
   };
 
-  const displayText = interimText ? (input ? `${input} [${interimText}]` : `[${interimText}]`) : input;
+  const voiceLangLabels = {
+    mr: { label: 'मराठी', hint: 'मराठीत बोला (उदा. "कांदा कधी विकू?")' },
+    hi: { label: 'हिंदी', hint: 'हिंदी में बोलें (उदा. "टमाटर का भाव क्या है?")' },
+    en: { label: 'English', hint: 'Speak in English (e.g. "Where should I sell?")' },
+  };
+
+  const activeLangConfig = voiceLangLabels[voiceLang] || voiceLangLabels.mr;
 
   return (
     <div className="w-full bg-neutral-surface border-t-2 border-neutral-ink p-3 sm:p-4 shrink-0">
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-3xl mx-auto space-y-2">
+        
+        {/* Voice Language Selector & Voice Status Bar */}
+        <div className="flex items-center justify-between text-xs font-bold px-1">
+          <div className="flex items-center gap-1.5">
+            <span className="text-neutral-muted flex items-center gap-1">
+              <Globe className="w-3.5 h-3.5 text-primary" />
+              <span>{voiceLang === 'mr' ? 'बोलण्याची भाषा:' : voiceLang === 'hi' ? 'बोलने की भाषा:' : 'Voice Language:'}</span>
+            </span>
+            <div className="inline-flex bg-neutral-bg border border-neutral-ink p-0.5 gap-0.5 shadow-sm">
+              {(['mr', 'hi', 'en'] as const).map((langCode) => (
+                <button
+                  key={langCode}
+                  type="button"
+                  onClick={() => {
+                    setVoiceLang(langCode);
+                    if (isListening) {
+                      recognizerRef.current?.stop();
+                      setIsListening(false);
+                    }
+                  }}
+                  className={`px-2 py-0.5 font-black text-xs transition-colors cursor-pointer ${
+                    voiceLang === langCode
+                      ? 'bg-primary text-primary-fg border border-neutral-ink'
+                      : 'text-neutral-ink hover:bg-neutral-surface'
+                  }`}
+                >
+                  {voiceLangLabels[langCode].label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Real-time Listening / Transcribing Indicator */}
+          {isListening && (
+            <div className="flex items-center gap-1.5 text-risk font-black animate-pulse">
+              <span className="w-2.5 h-2.5 rounded-full bg-risk inline-block"></span>
+              <span>
+                {voiceLang === 'mr'
+                  ? 'ऐकत आहे (मराठी)...'
+                  : voiceLang === 'hi'
+                  ? 'सुन रहा है (हिंदी)...'
+                  : 'Listening (English)...'}
+              </span>
+            </div>
+          )}
+
+          {isTranscribing && (
+            <div className="flex items-center gap-1.5 text-primary font-black">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              <span>Transcribing voice...</span>
+            </div>
+          )}
+        </div>
+
         {/* Main Input Box Container */}
         <div
           className={`relative border-2 border-neutral-ink shadow-hard bg-neutral-surface flex items-end gap-2 p-2 sm:p-2.5 transition-all ${
             isListening ? 'ring-2 ring-risk' : 'focus-within:ring-2 focus-within:ring-primary'
           }`}
         >
-          {/* Mic Button */}
+          {/* Mic Button with Pulse Ring */}
           <button
             type="button"
             onClick={handleToggleMic}
-            disabled={!speechSupported || isStreaming}
+            disabled={isStreaming || isTranscribing}
             title={
-              speechSupported
-                ? isListening
-                  ? t('chat.stopListening')
-                  : t('chat.listening', { lang: language.toUpperCase() })
-                : t('chat.micNotSupported')
+              isListening
+                ? 'Stop recording (क्लिक करून थांबवा)'
+                : `Record voice in ${activeLangConfig.label} (${activeLangConfig.label} मध्ये बोला)`
             }
             aria-label="Voice input"
-            className={`p-2.5 border-2 border-neutral-ink shadow-hard transition-colors shrink-0 ${
+            className={`p-2.5 border-2 border-neutral-ink shadow-hard transition-all shrink-0 cursor-pointer ${
               isListening
-                ? 'bg-risk text-risk-fg animate-pulse'
-                : speechSupported
-                ? 'bg-neutral-bg text-neutral-ink hover:bg-primary-subtle hover:text-primary cursor-pointer'
-                : 'bg-neutral-bg text-neutral-muted opacity-40 cursor-not-allowed'
+                ? 'bg-risk text-risk-fg animate-pulse scale-105'
+                : 'bg-neutral-bg text-neutral-ink hover:bg-primary hover:text-primary-fg'
             }`}
           >
             {isListening ? (
               <MicOff className="w-5 h-5" />
             ) : (
-              <Mic className="w-5 h-5" />
+              <Mic className="w-5 h-5 text-primary" />
             )}
           </button>
 
@@ -158,30 +269,34 @@ export const InputBar: React.FC<InputBarProps> = ({
           <textarea
             ref={textareaRef}
             rows={1}
-            value={displayText}
-            onChange={(e) => {
-              if (!interimText) setInput(e.target.value);
-            }}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={
               isListening
-                ? t('chat.listening', { lang: language.toUpperCase() })
-                : t('chat.inputPlaceholder')
+                ? activeLangConfig.hint
+                : voiceLang === 'mr'
+                ? 'कांदा, टोमॅटो किंवा सोयाबीन विक्रीबद्दल प्रश्न विचारा किंवा माइक दाबा...'
+                : voiceLang === 'hi'
+                ? 'फसल बिक्री या मंडी भाव के बारे में पूछें या माइक दबाएं...'
+                : 'Ask a question about crop prices, or click mic to speak...'
             }
-            className="flex-1 py-1.5 px-2 text-base font-semibold text-neutral-ink placeholder:text-neutral-muted resize-none focus:outline-none bg-transparent max-h-36 leading-normal"
+            aria-label="Message input"
+            className="flex-1 max-h-36 bg-transparent resize-none border-0 text-base text-neutral-ink placeholder:text-neutral-muted focus:outline-none focus:ring-0 p-1 leading-relaxed font-medium"
           />
 
-          {/* Send / Stop Button */}
+          {/* Send / Stop Streaming Button */}
           <button
             type="button"
             onClick={handleSend}
-            disabled={!isStreaming && !input.trim() && !interimText.trim()}
-            title={isStreaming ? t('chat.stop') : t('chat.send')}
+            disabled={(!input.trim() && !interimText.trim() && !isStreaming) || isTranscribing}
             aria-label={isStreaming ? 'Stop generation' : 'Send message'}
-            className={`p-2.5 border-2 border-neutral-ink shadow-hard font-bold transition-all shrink-0 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed active:translate-x-0.5 active:translate-y-0.5 active:shadow-none ${
+            className={`p-2.5 border-2 border-neutral-ink shadow-hard transition-colors shrink-0 ${
               isStreaming
-                ? 'bg-neutral-ink text-neutral-surface'
-                : 'bg-primary hover:bg-primary-hover text-primary-fg'
+                ? 'bg-risk text-risk-fg hover:bg-risk-hover cursor-pointer'
+                : input.trim() || interimText.trim()
+                ? 'bg-primary text-primary-fg hover:bg-primary-hover cursor-pointer active:translate-x-0.5 active:translate-y-0.5'
+                : 'bg-neutral-bg text-neutral-muted opacity-40 cursor-not-allowed'
             }`}
           >
             {isStreaming ? (
@@ -192,10 +307,14 @@ export const InputBar: React.FC<InputBarProps> = ({
           </button>
         </div>
 
-        {/* Small Disclaimer Footer */}
-        <p className="mt-2 text-center text-xs text-neutral-muted select-none">
-          {t('chat.disclaimer')}
-        </p>
+        {/* Live Interim Transcript Pill while Speaking */}
+        {interimText && (
+          <div className="p-2 bg-neutral-bg border border-neutral-ink text-sm font-bold text-neutral-ink flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-sell animate-ping shrink-0"></span>
+            <span className="italic">"{interimText}"</span>
+          </div>
+        )}
+
       </div>
     </div>
   );
