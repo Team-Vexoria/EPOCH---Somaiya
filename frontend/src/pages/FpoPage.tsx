@@ -625,7 +625,7 @@ export const FpoPage: React.FC = () => {
                                 <span>{currentLang === 'mr' ? 'संतुलित (२.५-५%)' : 'Balanced'}</span>
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 px-2 py-1 bg-danger/10 text-danger border border-danger font-bold text-sm">
+                              <span className="inline-flex items-center gap-1 px-2 py-1 bg-risk/10 text-risk border border-risk font-bold text-sm">
                                 <AlertTriangle className="w-3.5 h-3.5" />
                                 <span>{currentLang === 'mr' ? 'अतिरिक्त आवक (>५%)' : 'Glut Risk'}</span>
                               </span>
@@ -714,15 +714,15 @@ export const FpoPage: React.FC = () => {
             {/* Side-by-Side Scenario Breakdown */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
               {/* Scenario A: Single Mandi Dump (Bad) */}
-              <div className="bg-neutral-bg border-2 border-neutral-border p-5 relative">
+              <div className="bg-neutral-bg border-2 border-risk p-5 relative">
                 <div className="flex items-center justify-between pb-3 border-b-2 border-neutral-border">
                   <div className="flex items-center gap-2">
-                    <span className="w-3.5 h-3.5 bg-secondary inline-block border border-neutral-ink" />
+                    <span className="w-3.5 h-3.5 bg-risk inline-block border border-neutral-ink" />
                     <span className="font-extrabold text-neutral-ink text-base">
                       {currentLang === 'mr' ? 'पर्याय अ: स्थानिक बाजारात १००% ओतणे' : 'Scenario A: Single Mandi 100% Dump'}
                     </span>
                   </div>
-                  <span className="bg-secondary text-secondary-fg text-sm font-black px-2 py-0.5 border border-neutral-ink">
+                  <span className="bg-risk text-risk-fg text-sm font-black px-2 py-0.5 border border-neutral-ink">
                     HIGH RISK
                   </span>
                 </div>
@@ -741,7 +741,7 @@ export const FpoPage: React.FC = () => {
                     <span className="text-neutral-muted font-bold">
                       {currentLang === 'mr' ? 'बाजार आवकेतील वाटा' : 'Intake Market Share'}:
                     </span>
-                    <span className="font-black text-secondary">
+                    <span className="font-black text-risk">
                       ~{plan.singleDumpSharePct || 12.5}% of daily arrival
                     </span>
                   </div>
@@ -750,8 +750,8 @@ export const FpoPage: React.FC = () => {
                     <span className="text-neutral-muted font-bold">
                       {currentLang === 'mr' ? 'व्यापारी लिलाव परिणाम' : 'Trader Auction Impact'}:
                     </span>
-                    <span className="font-bold text-secondary">
-                      -₹140/qtl bid depression (Cartel discount)
+                    <span className="font-bold text-risk">
+                      -₹{plan.priceDepressionPerQtl || 140}/qtl bid depression (Cartel discount)
                     </span>
                   </div>
 
@@ -759,8 +759,8 @@ export const FpoPage: React.FC = () => {
                     <span className="text-neutral-ink font-bold">
                       {currentLang === 'mr' ? 'शेतकऱ्यांचे अंदाजे नुकसान' : 'Estimated Farmer Pool Loss'}:
                     </span>
-                    <span className="font-black text-secondary text-base">
-                      -{formatRupee(plan.totalGlutLossAvoided || plan.totalQuantity * 140)}
+                    <span className="font-black text-risk text-base">
+                      -{formatRupee(plan.totalGlutLossAvoided || plan.totalQuantity * (plan.priceDepressionPerQtl || 140))}
                     </span>
                   </div>
                 </div>

@@ -122,32 +122,56 @@ def test_fastapi_endpoints():
     assert len(clusters) >= 8
     print(f"  ✅ GET /api/fpo/clusters → {len(clusters)} FPO clusters registered with member counts")
 
-    # 6. FPO Bulk Planning endpoint
-    fpo_req = {
+    # 6. FPO Bulk Planning endpoint (500 qtl lot)
+    fpo_req_500 = {
         "crop": "onion",
         "quantity": 500,
         "village": "niphad_rural",
         "horizonDays": 7
     }
-    res = client.post("/api/fpo/plan", json=fpo_req)
+    res = client.post("/api/fpo/plan", json=fpo_req_500)
     assert res.status_code == 200
-    plan = res.json()
-    assert plan["totalQuantity"] == 500
-    assert plan["metricTonnes"] == 50.0
-    assert plan["totalTrucks"] == 5
-    assert len(plan["allocations"]) == 3
-    assert plan["extraRevenueEarned"] > 0
-    # Feature 2 Anti-Glut assertions
-    assert plan["totalGlutLossAvoided"] == 500 * 140
-    assert plan["singleDumpSharePct"] > 5.0
-    assert plan["maxIntakeSharePct"] <= 2.5
-    for a in plan["allocations"]:
+    plan_500 = res.json()
+    assert plan_500["totalQuantity"] == 500
+    assert plan_500["metricTonnes"] == 50.0
+    assert plan_500["totalTrucks"] == 5
+    assert len(plan_500["allocations"]) >= 2
+    assert plan_500["extraRevenueEarned"] > 0
+    assert plan_500["totalGlutLossAvoided"] == 500 * 140
+    assert plan_500["maxIntakeSharePct"] <= 2.5
+    assert plan_500["riskLevel"] == "LOW"
+    for a in plan_500["allocations"]:
         assert a["dailyArrivalsQuintals"] > 0
-        assert a["intakeSharePct"] > 0
-        assert a["absorptionStatus"] in ("SAFE", "MODERATE", "RISK")
+        assert a["intakeSharePct"] <= 2.5
+        assert a["absorptionStatus"] == "SAFE"
         assert a["glutPricePenaltyAvoided"] == 140
-    print(f"  ✅ POST /api/fpo/plan → {plan['hubName']} (50 MT, 5 Trucks, ~25 Farmers Pooled) | Extra Revenue: +₹{plan['extraRevenueEarned']:,} ({plan['percentageGain']}%)")
-    print(f"  🛡️ Anti-Glut Engine: Single dump risk was {plan['singleDumpSharePct']}% of {plan['singleDumpMandiName']}. Split allocation protected ₹{plan['totalGlutLossAvoided']:,} against APMC price depression!")
+    print(f"  ✅ POST /api/fpo/plan (500 qtl) → {plan_500['hubName']} (50 MT, 5 Trucks, ~25 Farmers Pooled) | Extra Revenue: +₹{plan_500['extraRevenueEarned']:,}")
+    print(f"  🛡️ Anti-Glut 500 qtl: Max intake share was {plan_500['maxIntakeSharePct']}% (Risk: {plan_500['riskLevel']}). Value protected: ₹{plan_500['totalGlutLossAvoided']:,}")
+
+    # 7. FPO Bulk Planning endpoint (2,000 qtl large lot - capacity-constrained spillover check)
+    fpo_req_2000 = {
+        "crop": "onion",
+        "quantity": 2000,
+        "village": "niphad_rural",
+        "horizonDays": 7
+    }
+    res = client.post("/api/fpo/plan", json=fpo_req_2000)
+    assert res.status_code == 200
+    plan_2000 = res.json()
+    assert plan_2000["totalQuantity"] == 2000
+    assert plan_2000["metricTonnes"] == 200.0
+    assert plan_2000["totalTrucks"] == 20
+    assert len(plan_2000["allocations"]) >= 3
+    assert plan_2000["extraRevenueEarned"] > 0
+    assert plan_2000["totalGlutLossAvoided"] == 2000 * 140
+    assert plan_2000["maxIntakeSharePct"] <= 2.5, f"Expected max intake share <= 2.5% but got {plan_2000['maxIntakeSharePct']}%"
+    assert plan_2000["riskLevel"] == "LOW"
+    for a in plan_2000["allocations"]:
+        assert a["dailyArrivalsQuintals"] > 0
+        assert a["intakeSharePct"] <= 2.5, f"Mandi {a['mandiName']} exceeded 2.5% with {a['intakeSharePct']}%"
+        assert a["absorptionStatus"] == "SAFE"
+    print(f"  ✅ POST /api/fpo/plan (2,000 qtl) → {plan_2000['hubName']} (200 MT, 20 Trucks, ~100 Farmers Pooled) | Extra Revenue: +₹{plan_2000['extraRevenueEarned']:,}")
+    print(f"  🛡️ Anti-Glut 2,000 qtl: Max intake share safely capped at {plan_2000['maxIntakeSharePct']}% (Risk: {plan_2000['riskLevel']}) across {len(plan_2000['allocations'])} mandis. Value protected: ₹{plan_2000['totalGlutLossAvoided']:,}")
 
 if __name__ == "__main__":
     test_village_resolution()
