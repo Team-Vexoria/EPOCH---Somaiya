@@ -22,7 +22,7 @@ export function isSpeechSynthesisSupported(): boolean {
 }
 
 export function getLanguageCodeForSpeech(lang: Language | string): string {
-  const clean = (lang || 'mr').toLowerCase();
+  const clean = (lang || 'en').toLowerCase();
   if (clean.startsWith('mr') || clean.includes('marathi')) {
     return 'mr-IN';
   }

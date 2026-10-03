@@ -1,4 +1,4 @@
-﻿export const APP_NAME = 'Mohra';
+export const APP_NAME = 'Mohra';
 
 export const AUTH_CONFIG = {
   fixedOtp: '123456',

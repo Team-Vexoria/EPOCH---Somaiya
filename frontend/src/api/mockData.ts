@@ -1,4 +1,4 @@
-﻿import { MANDIS } from '../config/mandis';
+import { MANDIS } from '../config/mandis';
 import { VILLAGES } from '../config/villages';
 import { CROPS } from '../config/crops';
 import type {

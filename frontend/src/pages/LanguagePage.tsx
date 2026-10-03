@@ -12,7 +12,7 @@ export const LanguagePage: React.FC = () => {
   const navigate = useNavigate();
 
   const { language, setLanguage } = useAppStore();
-  const [selectedLang, setSelectedLang] = useState<Language>(language || 'mr');
+  const [selectedLang, setSelectedLang] = useState<Language>(language || 'en');
   const [playingLang, setPlayingLang] = useState<string | null>(null);
 
   const handleSelectLang = (langCode: Language) => {

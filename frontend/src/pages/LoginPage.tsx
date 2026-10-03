@@ -15,10 +15,18 @@ export const LoginPage: React.FC = () => {
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
   const [phone, setPhone] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [fallbackCode, setFallbackCode] = useState<string | undefined>();
-  const [gatewayNotice, setGatewayNotice] = useState<string | undefined>();
 
   const { isLoggedIn, login, onboardingComplete, crops } = useAppStore();
+
+  // Force English on first visit — clear stale Marathi from localStorage
+  React.useEffect(() => {
+    const lang = localStorage.getItem('Mohra_language');
+    if (!lang || lang === 'mr') {
+      localStorage.setItem('Mohra_language', 'en');
+      localStorage.setItem('i18nextLng', 'en');
+      window.location.reload();
+    }
+  }, []);
 
   // If already logged in, redirect away from /login
   React.useEffect(() => {
@@ -34,10 +42,8 @@ export const LoginPage: React.FC = () => {
   const handleSendOtp = async (inputPhone: string) => {
     setIsLoading(true);
     try {
-      const res = await sendOtp(inputPhone);
+      await sendOtp(inputPhone);
       setPhone(inputPhone);
-      setFallbackCode(res.fallbackCode);
-      setGatewayNotice(res.gatewayNotice);
       setStep('otp');
     } finally {
       setIsLoading(false);
@@ -130,8 +136,6 @@ export const LoginPage: React.FC = () => {
               onResendOtp={handleResendOtp}
               onEditPhone={() => setStep('phone')}
               isLoading={isLoading}
-              fallbackCode={fallbackCode}
-              gatewayNotice={gatewayNotice}
             />
           </div>
         )}

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Design Tokens for Mohra (EPOCH---Somaiya)
  * 
  * Sourced from docs/DESIGN_BRIEF.md.

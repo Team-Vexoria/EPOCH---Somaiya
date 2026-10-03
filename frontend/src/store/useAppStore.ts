@@ -55,7 +55,7 @@ export const useAppStore = create<AppState>()(
       phone: null,
       isLoggedIn: false,
 
-      language: 'mr',
+      language: 'en',
       crops: [],
       harvestDaysAgo: {
         onion: 0,

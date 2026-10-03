@@ -51,7 +51,7 @@ const CROP_PARAMS: Record<CropId, CropParams> = {
     name_hi: 'प्याज (कांदा)',
     name_mr: 'कांदा (Onion)',
     emoji: '🧅',
-    basePrice: 2280,
+    basePrice: 4000,
     maxDays: 30,
     dailySpoilageRate: 0.0045, // 0.45% per day in aerated chawl
     priceDeltaFn: (d: number) => {
@@ -65,7 +65,7 @@ const CROP_PARAMS: Record<CropId, CropParams> = {
     name_hi: 'टमाटर (टोमॅटो)',
     name_mr: 'टोमॅटो (Tomato)',
     emoji: '🍅',
-    basePrice: 1680,
+    basePrice: 3500,
     maxDays: 7,
     dailySpoilageRate: 0.038, // 3.8% rapid spoilage per day!
     priceDeltaFn: (d: number) => {
@@ -78,7 +78,7 @@ const CROP_PARAMS: Record<CropId, CropParams> = {
     name_hi: 'सोयाबीन (Soybean)',
     name_mr: 'सोयाबीन (Soybean)',
     emoji: '🫘',
-    basePrice: 4490,
+    basePrice: 5708,
     maxDays: 45,
     dailySpoilageRate: 0.0003, // 0.03% very low decay in dry bag
     priceDeltaFn: (d: number) => {

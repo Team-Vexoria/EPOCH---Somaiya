@@ -1,4 +1,4 @@
-﻿/**
+/**
  * openWhatsAppBot
  *
  * Directly redirects to WhatsApp to chat with the Mohra AI Assistant
@@ -14,8 +14,8 @@ export function openWhatsAppBot(customGreeting?: string): void {
   const targetNumber = envNumber || '15556301922';
 
   // Detect language from localStorage / document lang
-  const storedLang = localStorage.getItem('i18nextLng') || 'mr';
-  const currentLang = storedLang.startsWith('hi') ? 'hi' : storedLang.startsWith('en') ? 'en' : 'mr';
+  const storedLang = localStorage.getItem('i18nextLng') || localStorage.getItem('Mohra_language') || 'en';
+  const currentLang = storedLang.startsWith('hi') ? 'hi' : storedLang.startsWith('mr') ? 'mr' : 'en';
 
   const defaultGreeting =
     customGreeting ||

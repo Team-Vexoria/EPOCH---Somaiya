@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { sendChatMessage } from '../api';
 import type { ChatMessage, ChatRequest } from '../api/types';

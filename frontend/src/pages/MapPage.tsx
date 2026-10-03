@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import L from 'leaflet';
@@ -55,7 +55,12 @@ const DICTIONARY = {
     travelTimeLabel: 'Estimated Transit Time',
     freightCostLabel: 'Road Freight Cost',
     mandiPriceLabel: 'Mandi Auction Price',
+    spoilageLabel: 'Storage Spoilage & Decay',
+    spoilageLossText: 'Decay / Weight Shrinkage',
+    freshHarvest: '0% (Sold Fresh Today)',
+    spoilageAdvisoryHeader: 'Crop Storage & Decay Advisory',
     netProfitLabel: 'Net In-Hand Cash',
+    netProfitSubtext: 'After Freight & Spoilage Loss',
     extraProfitLabel: 'Extra In-Hand Cash vs Local',
     shareWhatsApp: 'Share Route on WhatsApp',
     askChat: 'Ask Advisory Strategy in Chat',
@@ -93,7 +98,12 @@ const DICTIONARY = {
     travelTimeLabel: 'लागणारा वेळ (अंदाजे)',
     freightCostLabel: 'एकूण गाडीभाडे',
     mandiPriceLabel: 'बाजार भाव (प्रति क्विंटल)',
+    spoilageLabel: 'साठवणूक घट व सड नुकसान',
+    spoilageLossText: 'वजन व दर्जा घट',
+    freshHarvest: '०% (आजच ताजी विक्री)',
+    spoilageAdvisoryHeader: 'साठवणूक व नाशवंतता सल्ला',
     netProfitLabel: 'खिशात पडणारा निव्वळ नफा',
+    netProfitSubtext: 'गाडीभाडे व सड वजा जाता',
     extraProfitLabel: 'स्थानिक विक्रीपेक्षा जास्तीचा निव्वळ फायदा',
     shareWhatsApp: 'व्हॉट्सॲपवर माहिती शेअर करा',
     askChat: 'सल्लागाराला प्रश्न विचारा',
@@ -131,7 +141,12 @@ const DICTIONARY = {
     travelTimeLabel: 'अनुमानित समय',
     freightCostLabel: 'कुल गाड़ी भाड़ा',
     mandiPriceLabel: 'मंडी भाव (प्रति क्विंटल)',
+    spoilageLabel: 'भंडारण वजन कमी व खराबी',
+    spoilageLossText: 'वजन व गुणवत्ता में कमी',
+    freshHarvest: '0% (आज ही ताजी बिक्री)',
+    spoilageAdvisoryHeader: 'भंडारण व खराबी सलाह',
     netProfitLabel: 'जेब में शुद्ध लाभ',
+    netProfitSubtext: 'गाड़ी भाड़ा व खराबी घटाने के बाद',
     extraProfitLabel: 'स्थानीय बिक्री से अतिरिक्त लाभ',
     shareWhatsApp: 'व्हाट्सएप पर शेयर करें',
     askChat: 'सलाहकार से चैट में पूछें',
@@ -149,6 +164,91 @@ const DICTIONARY = {
     },
   },
 };
+
+interface SpoilageCalculation {
+  pct: number;
+  lossQtl: number;
+  lossValue: number;
+  advice: string;
+  isHighRisk: boolean;
+}
+
+function calculateSpoilage(
+  crop: string,
+  days: number,
+  qty: number,
+  pricePerQtl: number,
+  lang: 'en' | 'mr' | 'hi'
+): SpoilageCalculation {
+  let pct = 0;
+  let isHighRisk = false;
+  let advice = '';
+
+  if (crop === 'tomato') {
+    if (days === 0) {
+      pct = 0;
+      advice =
+        lang === 'mr'
+          ? 'टोमॅटो अतिनाशवंत पीक आहे. फळे मऊ पडू नयेत म्हणून आजच विक्री करणे सर्वात फायदेशीर आहे.'
+          : lang === 'hi'
+          ? 'टमाटर जल्दी खराब होने वाली फसल है। फल नरम होने से पहले आज ही बेचना सबसे अच्छा है।'
+          : 'Tomato is highly perishable. Selling fresh today locks in maximum firmness and top modal rate.';
+    } else {
+      pct = days === 7 ? 25 : days === 14 ? 55 : 85;
+      isHighRisk = true;
+      advice =
+        lang === 'mr'
+          ? `⚠️ अतिधोका: टोमॅटो ${days} दिवस थांबवल्यास सुमारे ${pct}% माल क्रेटमध्ये सडून नष्ट होईल (-${((qty * pct) / 100).toFixed(1)} क्विंटल नुकसान)!`
+          : lang === 'hi'
+          ? `⚠️ भारी खतरा: टमाटर ${days} दिन रोकने पर लगभग ${pct}% माल क्रेट में सड़ जाएगा (-${((qty * pct) / 100).toFixed(1)} क्विंटल नुकसान)!`
+          : `⚠️ Critical Spoilage Risk: Holding tomatoes for ${days} days causes ~${pct}% rotting in crates (-${((qty * pct) / 100).toFixed(1)} qtl loss)!`;
+    }
+  } else if (crop === 'onion') {
+    if (days === 0) {
+      pct = 0;
+      advice =
+        lang === 'mr'
+          ? 'आज ताजी विक्री केल्यास वजन घट ०% राहील.'
+          : lang === 'hi'
+          ? 'आज ताजा बेचने पर वजन में कोई कमी (0%) नहीं होगी।'
+          : 'Fresh onion harvest. 0% shrinkage when dispatched today.';
+    } else {
+      pct = days === 7 ? 1.2 : days === 14 ? 2.4 : 3.6;
+      isHighRisk = false;
+      advice =
+        lang === 'mr'
+          ? `💡 हवादार चाळ: ${days} दिवसांत केवळ ~${pct}% नैसर्गिक ओलावा कमी होईल. भावातील अपेक्षित वाढीमुळे हा नफा अधिक राहील.`
+          : lang === 'hi'
+          ? `💡 हवादार चाळ: ${days} दिनों में सिर्फ ~${pct}% नमी कम होगी। भाव बढ़त से यह नुकसान आसानी से पूरा होगा।`
+          : `💡 Aerated Chawl: Only ~${pct}% moisture shrinkage over ${days} days. Projected price rise easily offsets this shrinkage.`;
+    }
+  } else {
+    // soybean
+    if (days === 0) {
+      pct = 0;
+      advice =
+        lang === 'mr'
+          ? 'सोयाबीन कोरड्या गोदामात साठवणे किंवा आज विकणे दोन्ही सुरक्षित आहे.'
+          : lang === 'hi'
+          ? 'सोयाबीन सूखे गोदाम में रखना या आज बेचना दोनों सुरक्षित हैं।'
+          : 'Dry grain storage. Safe to sell today or hold in moisture-controlled godown.';
+    } else {
+      pct = days === 7 ? 0.1 : days === 14 ? 0.2 : 0.3;
+      isHighRisk = false;
+      advice =
+        lang === 'mr'
+          ? `💡 कोरडे गोदाम: ${days} दिवसांत नगण्य (~${pct}%) घट. भाववाढीसाठी माल सुरक्षितपणे गोदामात थांबवू शकता.`
+          : lang === 'hi'
+          ? `💡 सूखा गोदाम: ${days} दिनों में नगण्य (~${pct}%) कमी। भाव बढ़ने तक माल सुरक्षित रोक सकते हैं।`
+          : `💡 Dry Godown: Negligible ~${pct}% moisture variation over ${days} days. Safe to hold for higher prices.`;
+    }
+  }
+
+  const lossQtl = Number(((qty * pct) / 100).toFixed(2));
+  const lossValue = Math.round(lossQtl * pricePerQtl);
+
+  return { pct, lossQtl, lossValue, advice, isHighRisk };
+}
 
 export const MapPage: React.FC = () => {
   const { i18n } = useTranslation();
@@ -369,14 +469,17 @@ export const MapPage: React.FC = () => {
       : selectedMandi.name
     : '';
 
+  const selectedMandiPrice = selectedMandi ? selectedMandi.forecastPrice : 0;
+  const spoilage = calculateSpoilage(selectedCrop, selectedHorizon, lotQty, selectedMandiPrice, langKey);
   const totalGrossValue = selectedMandi ? selectedMandi.forecastPrice * lotQty : 0;
   const totalFreightCost = selectedMandi ? selectedMandi.transportCost * lotQty : 0;
-  const totalNetPocketCash = selectedMandi ? totalGrossValue - totalFreightCost : 0;
+  const totalSpoilageLossValue = spoilage.lossValue;
+  const totalNetPocketCash = Math.max(0, totalGrossValue - totalFreightCost - totalSpoilageLossValue);
   const approxTransitMinutes = selectedMandi ? Math.round(selectedMandi.distanceKm * 2.2) : 0;
 
   // Local distress comparison (nearest village local trader rate ~18% lower)
   const localTraderRate = selectedMandi ? Math.round(selectedMandi.forecastPrice * 0.82) : 0;
-  const localNetValue = localTraderRate * lotQty;
+  const localNetValue = localTraderRate * Math.max(0, lotQty - spoilage.lossQtl);
   const extraGainVsLocal = Math.max(0, totalNetPocketCash - localNetValue);
   const extraGainPerQtl = Math.round(extraGainVsLocal / Math.max(1, lotQty));
 
@@ -386,13 +489,19 @@ export const MapPage: React.FC = () => {
     const cropName = t.crops[selectedCrop as keyof typeof t.crops] || selectedCrop;
     const originName = langKey === 'mr' ? currentVillage.name_mr : langKey === 'hi' ? currentVillage.name_hi : currentVillage.name;
 
+    const spoilageLine =
+      selectedHorizon > 0
+        ? `⚠️ *Storage Spoilage & Decay Loss:* -${formatRupee(totalSpoilageLossValue)} (~${spoilage.pct}% / -${spoilage.lossQtl} qtl)\n`
+        : `🌿 *Storage Loss:* 0% (Fresh Harvest Dispatched Today)\n`;
+
     const message =
       `🌾 *Mohra Mandi Route & Profit Advisory*\n\n` +
       `📍 *Route:* ${originName} ➔ *${mandiName}* (${selectedMandi.distanceKm} km, ~${approxTransitMinutes} mins)\n` +
       `📦 *Produce Batch:* ${cropName} (${lotQty} Quintals)\n` +
       `🏷️ *Mandi Auction Rate:* ₹${selectedMandi.forecastPrice}/qtl\n` +
       `🚚 *Travel Freight Cost:* -${formatRupee(totalFreightCost)} (₹${selectedMandi.transportCost}/qtl)\n` +
-      `💰 *Net Cash in Pocket:* *${formatRupee(totalNetPocketCash)}*\n` +
+      spoilageLine +
+      `💰 *Net In-Hand Cash:* *${formatRupee(totalNetPocketCash)}*\n` +
       `📈 *Extra Profit vs Local Sale:* *+${formatRupee(extraGainVsLocal)}* (+₹${extraGainPerQtl}/qtl)\n\n` +
       `Nashik District Agriculture Advisory`;
 
@@ -669,26 +778,51 @@ export const MapPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* 4. Gross Total Value */}
+                {/* 4. Storage Spoilage & Decay */}
                 <div className="p-3 bg-neutral-bg border border-neutral-ink">
                   <div className="text-xs font-bold text-neutral-muted flex items-center gap-1">
-                    <DollarSign className="w-3.5 h-3.5 text-neutral-ink" />
-                    <span>Total Auction Value</span>
+                    <Clock className="w-3.5 h-3.5 text-neutral-ink" />
+                    <span>{t.spoilageLabel}</span>
                   </div>
-                  <div className="text-lg font-black text-neutral-ink font-mono mt-0.5">
-                    {formatRupee(totalGrossValue)}
+                  <div className={`text-lg font-black font-mono mt-0.5 ${selectedHorizon > 0 && spoilage.lossValue > 0 ? 'text-risk' : 'text-primary'}`}>
+                    {selectedHorizon > 0 && spoilage.lossValue > 0 ? `-${formatRupee(spoilage.lossValue)}` : '0% Loss'}
                   </div>
-                  <div className="text-xs font-bold text-neutral-muted">
-                    Before road freight
+                  <div className="text-xs font-bold text-neutral-muted truncate">
+                    {selectedHorizon > 0 ? `~${spoilage.pct}% (-${spoilage.lossQtl} ${t.qtl})` : t.freshHarvest}
                   </div>
                 </div>
 
               </div>
 
+              {/* Storage & Spoilage Impact Banner */}
+              <div
+                className={`p-3.5 border-2 ${
+                  spoilage.isHighRisk
+                    ? 'bg-risk-bg text-risk border-risk'
+                    : 'bg-neutral-bg text-neutral-ink border-neutral-ink'
+                }`}
+              >
+                <div className="flex items-start gap-2.5">
+                  {spoilage.isHighRisk ? (
+                    <AlertTriangle className="w-5 h-5 shrink-0 text-risk mt-0.5" />
+                  ) : (
+                    <Clock className="w-5 h-5 shrink-0 text-primary mt-0.5" />
+                  )}
+                  <div className="text-sm">
+                    <div className="font-black">
+                      {t.spoilageAdvisoryHeader}: {selectedHorizon > 0 ? `+${selectedHorizon} Days Holding` : t.today}
+                    </div>
+                    <div className="font-bold mt-0.5 leading-snug">
+                      {spoilage.advice}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Big Golden In-Hand Profit Highlight Card */}
               <div className="p-4 bg-sell-bg border-2 border-sell shadow-hard text-center">
                 <div className="text-xs font-black uppercase tracking-wider text-sell mb-1">
-                  💰 {t.netProfitLabel} (After Deducting Freight)
+                  💰 {t.netProfitLabel} ({selectedHorizon > 0 ? t.netProfitSubtext : 'After Road Freight'})
                 </div>
                 <div className="text-3xl md:text-4xl font-black text-sell font-mono">
                   {formatRupee(totalNetPocketCash)}

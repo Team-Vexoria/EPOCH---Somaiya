@@ -1,4 +1,4 @@
-﻿import i18n from 'i18next';
+import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 
@@ -6,7 +6,7 @@ import mr from './locales/mr.json';
 import hi from './locales/hi.json';
 import en from './locales/en.json';
 
-const savedLang = localStorage.getItem('Mohra_language') || 'mr';
+const savedLang = localStorage.getItem('Mohra_language') || 'en';
 
 i18n
   .use(LanguageDetector)
@@ -18,7 +18,7 @@ i18n
       en: { translation: en },
     },
     lng: savedLang,
-    fallbackLng: 'mr', // Default language is Marathi per hackathon brief
+    fallbackLng: 'en',
     interpolation: {
       escapeValue: false,
     },

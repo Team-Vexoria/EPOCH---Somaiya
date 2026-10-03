@@ -1,4 +1,4 @@
-﻿export type DecisionType = 'SELL_NOW' | 'HOLD';
+export type DecisionType = 'SELL_NOW' | 'HOLD';
 export type ConfidenceLevel = 'HIGH' | 'MEDIUM' | 'LOW';
 
 export interface ForecastPoint {

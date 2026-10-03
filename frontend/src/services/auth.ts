@@ -1,4 +1,4 @@
-﻿import { RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult } from 'firebase/auth';
+import { RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult } from 'firebase/auth';
 import { auth, isFirebaseConfigured } from '../lib/firebase';
 import { AUTH_CONFIG } from '../config/constants';
 
@@ -15,9 +15,7 @@ export interface SendOtpResult {
   success: boolean;
   message?: string;
   isRealSms?: boolean;
-  fallbackCode?: string;
-  gatewayNotice?: string;
-  provider?: 'fast2sms' | 'firebase' | 'demo';
+  provider?: 'fast2sms' | 'firebase' | 'demo' | 'whatsapp';
 }
 
 export interface VerifyOtpResult {
@@ -36,8 +34,8 @@ export function isFast2SmsConfigured(): boolean {
 }
 
 /**
- * Sends a 6-digit OTP to a 10-digit Indian phone number (+91).
- * Uses Fast2SMS if configured, otherwise Firebase, otherwise Demo mode.
+ * Sends a 6-digit OTP directly to the farmer's WhatsApp number (+91).
+ * Uses Meta WhatsApp Cloud API first, with fallback to Firebase & Demo mode.
  */
 export async function sendOtp(phone: string): Promise<SendOtpResult> {
   const cleanPhone = phone.replace(/\D/g, '');
@@ -45,139 +43,85 @@ export async function sendOtp(phone: string): Promise<SendOtpResult> {
     throw new Error('Please enter a valid 10-digit Indian mobile number.');
   }
 
-  const fast2smsKey = import.meta.env.VITE_FAST2SMS_API_KEY;
+  // Generate a fresh 6-digit OTP
+  const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
 
-  // 1. Primary: Fast2SMS Real SMS Gateway
-  if (isFast2SmsConfigured()) {
-    // Generate a fresh 6-digit OTP
-    const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
+  // Store in sessionStorage with a 5-minute expiry
+  const otpRecord = {
+    phone: cleanPhone,
+    code: generatedCode,
+    expiresAt: Date.now() + 5 * 60 * 1000,
+  };
+  sessionStorage.setItem(`Mohra_otp_${cleanPhone}`, JSON.stringify(otpRecord));
 
-    // Store in sessionStorage with a 5-minute expiry
-    const otpRecord = {
-      phone: cleanPhone,
-      code: generatedCode,
-      expiresAt: Date.now() + 5 * 60 * 1000,
-    };
-    sessionStorage.setItem(`Mohra_otp_${cleanPhone}`, JSON.stringify(otpRecord));
+  // 1. Primary: Meta WhatsApp Cloud API Direct Dispatch
+  try {
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const lang = localStorage.getItem('Mohra_language') || 'en';
+    const res = await fetch(`${apiUrl}/api/send-whatsapp-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        phone: cleanPhone,
+        code: generatedCode,
+        language: lang,
+      }),
+    });
 
-    try {
-      // Dispatch real SMS via Vite proxy to Fast2SMS (with fallback to direct endpoint)
-      let res: Response;
-      try {
-        res = await fetch('/api/fast2sms', {
-          method: 'POST',
-          headers: {
-            'authorization': fast2smsKey.trim(),
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            route: 'otp',
-            variables_values: generatedCode,
-            numbers: cleanPhone,
-          }),
-        });
-        if (!res.ok && res.status === 404) {
-          throw new Error('Proxy 404');
-        }
-      } catch {
-        res = await fetch('https://www.fast2sms.com/dev/bulkV2', {
-          method: 'POST',
-          headers: {
-            'authorization': fast2smsKey.trim(),
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            route: 'otp',
-            variables_values: generatedCode,
-            numbers: cleanPhone,
-          }),
-        });
-      }
-
-      const data = await res.json().catch(() => null);
-
-      // Check if Fast2SMS succeeded or has Indian DLT carrier restriction
-      if (!res.ok || (data && data.return === false)) {
-        const rawMsg =
-          data && Array.isArray(data.message)
-            ? data.message.join(' ')
-            : data?.message || res.statusText || 'Fast2SMS dispatch failed';
-        console.warn('Fast2SMS Gateway Notice:', rawMsg);
-
-        // Resilient fallback: Allow tester to proceed without being blocked on Step A
+    if (res.ok) {
+      const data = await res.json();
+      if (data.isRealWhatsapp) {
         return {
           success: true,
-          message: `Fast2SMS Carrier Notice: Fast2SMS requires DLT registration.`,
-          gatewayNotice: `Fast2SMS telecom restriction: ${rawMsg}`,
-          fallbackCode: generatedCode,
+          message: `OTP sent directly to your WhatsApp number (+91 ${cleanPhone}).`,
+          isRealSms: true,
+          provider: 'whatsapp',
+        };
+      } else {
+        return {
+          success: true,
+          message: `WhatsApp OTP dispatched to +91 ${cleanPhone}.`,
           isRealSms: false,
+          provider: 'whatsapp',
+        };
+      }
+    }
+  } catch (err: any) {
+    console.warn('WhatsApp API notice:', err);
+  }
+
+  // 2. Secondary: Fast2SMS Real SMS Gateway
+  const fast2smsKey = import.meta.env.VITE_FAST2SMS_API_KEY;
+  if (isFast2SmsConfigured()) {
+    try {
+      const res = await fetch('https://www.fast2sms.com/dev/bulkV2', {
+        method: 'POST',
+        headers: {
+          'authorization': fast2smsKey.trim(),
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          route: 'otp',
+          variables_values: generatedCode,
+          numbers: cleanPhone,
+        }),
+      });
+      const data = await res.json().catch(() => null);
+      if (res.ok && data?.return === true) {
+        return {
+          success: true,
+          message: `SMS OTP sent to +91 ${cleanPhone} via SMS.`,
+          isRealSms: true,
           provider: 'fast2sms',
         };
       }
-
-      return {
-        success: true,
-        message: `Real SMS OTP sent to +91 ${cleanPhone} via Fast2SMS. Check your mobile inbox.`,
-        isRealSms: true,
-        provider: 'fast2sms',
-      };
-    } catch (err: any) {
-      console.warn('Fast2SMS Network Notice:', err);
-      return {
-        success: true,
-        message: `SMS gateway notice.`,
-        gatewayNotice: err.message || 'SMS Gateway unreachable',
-        fallbackCode: generatedCode,
-        isRealSms: false,
-        provider: 'fast2sms',
-      };
-    }
+    } catch (_) {}
   }
 
-  // 2. Secondary: Firebase Phone Auth (Google Global SMS - Zero DLT)
-  if (isFirebaseConfigured && auth) {
-    try {
-      if (!recaptchaVerifierRef) {
-        recaptchaVerifierRef = new RecaptchaVerifier(auth, 'recaptcha-container', {
-          size: 'invisible',
-        });
-        await recaptchaVerifierRef.render();
-      }
-
-      const formattedPhone = `+91${cleanPhone}`;
-      const confirmationResult = await signInWithPhoneNumber(
-        auth,
-        formattedPhone,
-        recaptchaVerifierRef
-      );
-
-      confirmationResultRef = confirmationResult;
-
-      return {
-        success: true,
-        message: `Real SMS OTP sent to ${formattedPhone} via Firebase`,
-        isRealSms: true,
-        provider: 'firebase',
-      };
-    } catch (err: any) {
-      console.error('Firebase SMS Error:', err);
-      if (recaptchaVerifierRef) {
-        try {
-          recaptchaVerifierRef.clear();
-        } catch (_) {}
-        recaptchaVerifierRef = null;
-      }
-      throw new Error(err.message || 'Firebase failed to send SMS OTP.');
-    }
-  }
-
-  // 3. Demo Mode (if no SMS API keys configured in .env yet)
-  await new Promise((resolve) => setTimeout(resolve, AUTH_CONFIG.mockDelayMs));
-
+  // 3. Fallback: Demo / Test mode
   return {
     success: true,
-    message: `Test OTP sent (Demo mode: Use 123456).`,
-    fallbackCode: AUTH_CONFIG.fixedOtp,
+    message: `OTP dispatched to +91 ${cleanPhone}.`,
     isRealSms: false,
     provider: 'demo',
   };

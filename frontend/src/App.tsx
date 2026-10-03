@@ -55,6 +55,20 @@ const RootRedirect: React.FC = () => {
 };
 
 export const App: React.FC = () => {
+  // Sync i18n language with app store on mount
+  React.useEffect(() => {
+    const stored = localStorage.getItem('Mohra_language');
+    if (!stored || stored === 'mr') {
+      localStorage.setItem('Mohra_language', 'en');
+      localStorage.setItem('i18nextLng', 'en');
+    }
+    import('./i18n').then(({ default: i18n }) => {
+      const lang = localStorage.getItem('Mohra_language') || 'en';
+      if (i18n.language !== lang) {
+        i18n.changeLanguage(lang);
+      }
+    });
+  }, []);
   return (
     <BrowserRouter>
       <Routes>

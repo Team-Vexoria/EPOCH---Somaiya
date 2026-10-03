@@ -10,8 +10,6 @@ interface OtpInputProps {
   onResendOtp: () => Promise<void>;
   onEditPhone: () => void;
   isLoading: boolean;
-  fallbackCode?: string;
-  gatewayNotice?: string;
 }
 
 export const OtpInput: React.FC<OtpInputProps> = ({
@@ -20,8 +18,6 @@ export const OtpInput: React.FC<OtpInputProps> = ({
   onResendOtp,
   onEditPhone,
   isLoading,
-  fallbackCode,
-  gatewayNotice,
 }) => {
   const { t } = useTranslation();
   const [digits, setDigits] = useState<string[]>(['', '', '', '', '', '']);
