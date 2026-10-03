@@ -6,6 +6,7 @@ venv/
 __pycache__/
 *.pyc
 rag_db/
+data/chroma_db/
 
 # Production build outputs
 dist/

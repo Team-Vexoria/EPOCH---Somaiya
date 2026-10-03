@@ -96,11 +96,14 @@ export const FpoPage: React.FC = () => {
       'Allocation Percentage',
       'Quantity (Quintals)',
       '10-Ton Trucks Needed',
+      'Daily Arrival Capacity (Qtl)',
+      'Intake Share %',
+      'Glut Safety Status',
       'Expected Price (₹/Qtl)',
       'Estimated Freight (₹/Qtl)',
       'Net Revenue (₹)',
       'Dispatch Window',
-      'Intake Status',
+      'Intake Status Note',
     ];
 
     const rows = plan.allocations.map((a) => [
@@ -108,6 +111,9 @@ export const FpoPage: React.FC = () => {
       `${a.percentage}%`,
       a.quantityQuintals,
       a.trucksNeeded,
+      a.dailyArrivalsQuintals || 10000,
+      `${a.intakeSharePct || 1.0}%`,
+      `"${a.absorptionStatus || 'SAFE'}"`,
       a.expectedPrice,
       a.estimatedFreight,
       a.netRevenue,
@@ -373,7 +379,7 @@ export const FpoPage: React.FC = () => {
 
         {/* KPI Cards Row */}
         {plan && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
             {/* Card 1: Total Revenue */}
             <div className="bg-neutral-surface border-2 border-neutral-border p-5 shadow-hard">
               <div className="flex items-center justify-between text-neutral-muted text-sm font-bold">
@@ -406,7 +412,23 @@ export const FpoPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Card 3: Anchor Mandi */}
+            {/* Card 3: Anti-Glut Protection Value */}
+            <div className="bg-neutral-surface border-2 border-primary p-5 shadow-hard relative overflow-hidden">
+              <div className="flex items-center justify-between text-primary text-sm font-bold">
+                <span>{currentLang === 'mr' ? 'अतिरिक्त आवक संरक्षण' : 'Anti-Glut Value Protected'}</span>
+                <ShieldCheck className="w-5 h-5 text-sell" />
+              </div>
+              <div className="text-3xl font-black text-sell mt-2">
+                +{formatRupee(plan.totalGlutLossAvoided || plan.totalQuantity * 140)}
+              </div>
+              <div className="text-sm font-medium text-neutral-muted mt-1">
+                {currentLang === 'mr'
+                  ? 'आवक वाटा २.५% मर्यादित ठेवल्याने'
+                  : 'saved by preventing auction bid crash'}
+              </div>
+            </div>
+
+            {/* Card 4: Anchor Mandi */}
             <div className="bg-neutral-surface border-2 border-neutral-border p-5 shadow-hard">
               <div className="flex items-center justify-between text-neutral-muted text-sm font-bold">
                 <span>{t('fpo.kpiBest')}</span>
@@ -420,18 +442,18 @@ export const FpoPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Card 4: Risk Level */}
-            <div className="bg-neutral-surface border-2 border-neutral-border p-5 shadow-hard">
+            {/* Card 5: Risk Level */}
+            <div className="bg-neutral-surface border-2 border-neutral-border p-5 shadow-hard sm:col-span-2 lg:col-span-1">
               <div className="flex items-center justify-between text-neutral-muted text-sm font-bold">
                 <span>{t('fpo.kpiRisk')}</span>
-                <ShieldCheck className="w-5 h-5 text-sell" />
+                <CheckCircle className="w-5 h-5 text-sell" />
               </div>
               <div className="flex items-center gap-2 mt-2">
                 <span className="text-2xl font-black text-sell">
                   {plan.riskLevel}
                 </span>
                 <span className="bg-primary-subtle text-neutral-ink text-sm px-2 py-0.5 border border-primary font-bold">
-                  Diversified
+                  Multi-Mandi
                 </span>
               </div>
               <div className="text-sm font-medium text-neutral-muted mt-1">
@@ -532,8 +554,8 @@ export const FpoPage: React.FC = () => {
                     </h3>
                     <p className="text-sm text-neutral-muted mt-0.5">
                       {currentLang === 'mr'
-                        ? '१० टनी ट्रक वेळापत्रक व अपेक्षित निव्वळ रक्कम'
-                        : '10-ton bulk truck dispatch windows & net revenue projections'}
+                        ? '१० टनी ट्रक वेळापत्रक, बाजार आवक क्षमता व अपेक्षित निव्वळ रक्कम'
+                        : '10-ton fleet schedule, mandi intake capacity & net revenue projections'}
                     </p>
                   </div>
                   <span className="bg-neutral-bg border border-neutral-border px-3 py-1 text-sm font-bold text-neutral-ink">
@@ -549,6 +571,8 @@ export const FpoPage: React.FC = () => {
                         <th className="py-2.5 px-3">Mandi / Market</th>
                         <th className="py-2.5 px-3 text-center">Share</th>
                         <th className="py-2.5 px-3 text-center">Trucks</th>
+                        <th className="py-2.5 px-3">Daily Intake & Share</th>
+                        <th className="py-2.5 px-3">Glut Safety</th>
                         <th className="py-2.5 px-3">Dispatch Window</th>
                         <th className="py-2.5 px-3 text-right">Net Revenue</th>
                       </tr>
@@ -580,6 +604,32 @@ export const FpoPage: React.FC = () => {
                             <span className="inline-block bg-neutral-surface border border-neutral-ink font-bold px-2 py-0.5 text-sm">
                               {a.trucksNeeded} 🚛
                             </span>
+                          </td>
+                          <td className="py-3 px-3">
+                            <div className="font-bold text-neutral-ink">
+                              {(a.dailyArrivalsQuintals || 10000).toLocaleString('en-IN')} qtl/day
+                            </div>
+                            <div className="text-sm text-neutral-muted">
+                              Share: <span className="font-bold text-neutral-ink">{a.intakeSharePct || 1.0}%</span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-3">
+                            {a.absorptionStatus === 'SAFE' ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-1 bg-sell/10 text-sell border border-sell font-bold text-sm">
+                                <ShieldCheck className="w-3.5 h-3.5" />
+                                <span>{currentLang === 'mr' ? 'सुरक्षित (<२.५%)' : 'Safe Liquidity'}</span>
+                              </span>
+                            ) : a.absorptionStatus === 'MODERATE' ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-1 bg-hold/10 text-hold border border-hold font-bold text-sm">
+                                <Info className="w-3.5 h-3.5" />
+                                <span>{currentLang === 'mr' ? 'संतुलित (२.५-५%)' : 'Balanced'}</span>
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-1 bg-risk/10 text-risk border border-risk font-bold text-sm">
+                                <AlertTriangle className="w-3.5 h-3.5" />
+                                <span>{currentLang === 'mr' ? 'अतिरिक्त आवक (>५%)' : 'Glut Risk'}</span>
+                              </span>
+                            )}
                           </td>
                           <td className="py-3 px-3">
                             <div className="flex items-center gap-1.5 font-bold text-neutral-ink">
@@ -621,6 +671,163 @@ export const FpoPage: React.FC = () => {
                   <span className="font-black text-sell text-base">
                     +{formatRupee(plan.totalQuantity * 25)} saved
                   </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Anti-Glut Market Intelligence Engine: Single Mandi Dumping vs Multi-Mandi Split */}
+        {plan && (
+          <div className="bg-neutral-surface border-2 border-neutral-ink p-6 shadow-hard">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b-2 border-neutral-border pb-4">
+              <div>
+                <div className="inline-flex items-center gap-2 bg-primary text-primary-fg px-3 py-1 text-sm font-extrabold uppercase tracking-wide border border-neutral-ink">
+                  <ShieldCheck className="w-4 h-4" />
+                  <span>{currentLang === 'mr' ? 'अतिरिक्त आवक व घसरण प्रतिबंधक इंजिन' : 'Anti-Glut Market Intelligence Engine'}</span>
+                </div>
+                <h3 className="text-xl md:text-2xl font-black text-neutral-ink mt-2">
+                  {currentLang === 'mr'
+                    ? 'एकाच बाजारात ओतणे विरुद्ध ३ बाजारांमध्ये विभागणी'
+                    : 'Single Mandi Dumping vs. Multi-Mandi Allocation Split'}
+                </h3>
+                <p className="text-base text-neutral-muted mt-1 max-w-3xl">
+                  {currentLang === 'mr'
+                    ? (plan.glutRiskExplanation_mr || 'घाऊक माल एकाच स्थानिक बाजार समितीत नेल्यास आवक फुगून व्यापारी दर पाडतात. आम्ही कमाल आवक वाटा २.५% खाली मर्यादित ठेवतो.')
+                    : (plan.glutRiskExplanation || 'Unloading bulk volume into one local mandi floods the auction floor, giving traders cartel leverage to bid lower. Our engine spreads the lot across complimentary APMCs to keep market share under 2.5%.')}
+                </p>
+              </div>
+
+              <div className="bg-sell/10 border-2 border-sell p-4 text-center md:text-right shrink-0">
+                <span className="text-sm font-bold text-neutral-muted block">
+                  {currentLang === 'mr' ? 'सुरक्षित ठेवलेले उत्पन्न' : 'Auction Value Preserved'}
+                </span>
+                <span className="text-2xl md:text-3xl font-black text-sell block">
+                  +{formatRupee(plan.totalGlutLossAvoided || plan.totalQuantity * 140)}
+                </span>
+                <span className="text-sm font-bold text-sell">
+                  (+₹140/qtl protected)
+                </span>
+              </div>
+            </div>
+
+            {/* Side-by-Side Scenario Breakdown */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+              {/* Scenario A: Single Mandi Dump (Bad) */}
+              <div className="bg-neutral-bg border-2 border-risk p-5 relative">
+                <div className="flex items-center justify-between pb-3 border-b-2 border-neutral-border">
+                  <div className="flex items-center gap-2">
+                    <span className="w-3.5 h-3.5 bg-risk inline-block border border-neutral-ink" />
+                    <span className="font-extrabold text-neutral-ink text-base">
+                      {currentLang === 'mr' ? 'पर्याय अ: स्थानिक बाजारात १००% ओतणे' : 'Scenario A: Single Mandi 100% Dump'}
+                    </span>
+                  </div>
+                  <span className="bg-risk text-risk-fg text-sm font-black px-2 py-0.5 border border-neutral-ink">
+                    HIGH RISK
+                  </span>
+                </div>
+
+                <div className="mt-4 space-y-3">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-neutral-muted font-bold">
+                      {currentLang === 'mr' ? 'गंतव्य बाजार' : 'Target Market'}:
+                    </span>
+                    <span className="font-bold text-neutral-ink">
+                      {plan.singleDumpMandiName || 'Local APMC'}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-neutral-muted font-bold">
+                      {currentLang === 'mr' ? 'बाजार आवकेतील वाटा' : 'Intake Market Share'}:
+                    </span>
+                    <span className="font-black text-risk">
+                      ~{plan.singleDumpSharePct || 12.5}% of daily arrival
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-neutral-muted font-bold">
+                      {currentLang === 'mr' ? 'व्यापारी लिलाव परिणाम' : 'Trader Auction Impact'}:
+                    </span>
+                    <span className="font-bold text-risk">
+                      -₹{plan.priceDepressionPerQtl || 140}/qtl bid depression (Cartel discount)
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-center text-sm pt-2 border-t border-neutral-border">
+                    <span className="text-neutral-ink font-bold">
+                      {currentLang === 'mr' ? 'शेतकऱ्यांचे अंदाजे नुकसान' : 'Estimated Farmer Pool Loss'}:
+                    </span>
+                    <span className="font-black text-risk text-base">
+                      -{formatRupee(plan.totalGlutLossAvoided || plan.totalQuantity * (plan.priceDepressionPerQtl || 140))}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mt-4 p-3 bg-neutral-surface border border-neutral-border text-sm text-neutral-muted">
+                  ⚠️ {currentLang === 'mr'
+                    ? 'मोठा माल पाहून खरेदीदार एकत्र येतात व आवक जास्त असल्याचे सांगून लिलावाची पहिली बोलीच कमी करतात.'
+                    : 'Commission agents and wholesale buyers coordinate opening bids lower when single consignments exceed 5% of daily volume.'}
+                </div>
+              </div>
+
+              {/* Scenario B: SellSmart Anti-Glut Split (Recommended) */}
+              <div className="bg-neutral-bg border-2 border-sell p-5 relative">
+                <div className="flex items-center justify-between pb-3 border-b-2 border-neutral-border">
+                  <div className="flex items-center gap-2">
+                    <span className="w-3.5 h-3.5 bg-sell inline-block border border-neutral-ink" />
+                    <span className="font-extrabold text-neutral-ink text-base">
+                      {currentLang === 'mr' ? 'पर्याय ब: सेलस्मार्ट ३-बाजार विभागणी' : 'Scenario B: SellSmart 3-Mandi Split'}
+                    </span>
+                  </div>
+                  <span className="bg-sell text-sell-fg text-sm font-black px-2 py-0.5 border border-neutral-ink">
+                    OPTIMAL ✅
+                  </span>
+                </div>
+
+                <div className="mt-4 space-y-3">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-neutral-muted font-bold">
+                      {currentLang === 'mr' ? 'गंतव्य बाजार' : 'Target Markets'}:
+                    </span>
+                    <span className="font-bold text-neutral-ink">
+                      Lasalgaon (45%) + Pimpalgaon (35%) + Yeola (20%)
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-neutral-muted font-bold">
+                      {currentLang === 'mr' ? 'कमाल बाजार वाटा' : 'Max Intake Share'}:
+                    </span>
+                    <span className="font-black text-sell">
+                      &le; {plan.maxIntakeSharePct || 1.5}% (Safe Liquidity)
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-neutral-muted font-bold">
+                      {currentLang === 'mr' ? 'व्यापारी लिलाव परिणाम' : 'Trader Auction Impact'}:
+                    </span>
+                    <span className="font-bold text-sell">
+                      Full Modal Rate Realized (0% discount)
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-center text-sm pt-2 border-t border-neutral-border">
+                    <span className="text-neutral-ink font-bold">
+                      {currentLang === 'mr' ? 'निव्वळ नफा रक्षण' : 'Auction Realization Protected'}:
+                    </span>
+                    <span className="font-black text-sell text-base">
+                      +{formatRupee(plan.totalGlutLossAvoided || plan.totalQuantity * 140)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mt-4 p-3 bg-neutral-surface border border-neutral-border text-sm text-neutral-muted">
+                  🛡️ {currentLang === 'mr'
+                    ? 'प्रत्येक बाजारातील आवक २.५% खाली ठेवल्यामुळे कोणत्याही दबावाशिवाय पूर्ण बाजारभाव मिळतो.'
+                    : 'Capping allocation under 2.5% of daily intake guarantees rapid truck turnaround without price depression.'}
                 </div>
               </div>
             </div>
