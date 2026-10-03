@@ -35,13 +35,16 @@ export const InputBar: React.FC<InputBarProps> = ({
   const recognizerRef = useRef<any>(null);
   const audioRecorderRef = useRef<AudioRecorder | null>(null);
   const hasRecognizedTextRef = useRef(false);
+  // Bug #2 fix: ref mirrors isListening state so callbacks can read it without
+  // stale-closure issues (state inside a callback is captured at creation time).
+  const isListeningRef = useRef(false);
 
-  // Sync voiceLang if prop changes initially
+  // Bug #5 fix: only seed voiceLang once on mount — do NOT re-run on every
+  // language prop change or it silently resets the farmer's manual selection.
   useEffect(() => {
-    if (language) {
-      setVoiceLang(language);
-    }
-  }, [language]);
+    if (language) setVoiceLang(language);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // intentionally empty — seed only on mount
 
   // Auto-grow textarea up to max 6 lines (~144px)
   useEffect(() => {
@@ -57,7 +60,10 @@ export const InputBar: React.FC<InputBarProps> = ({
   // Clean up on unmount
   useEffect(() => {
     return () => {
+      isListeningRef.current = false;
       recognizerRef.current?.stop();
+      audioRecorderRef.current?.stop().catch(() => {});
+      audioRecorderRef.current = null;
     };
   }, []);
 
@@ -65,8 +71,16 @@ export const InputBar: React.FC<InputBarProps> = ({
   const handleToggleMic = async () => {
     if (isListening) {
       // User tapped to stop recording
+      isListeningRef.current = false;
       setIsListening(false);
       recognizerRef.current?.stop();
+
+      // If user spoke and text was still in interim buffer, commit it immediately
+      const currentInterim = interimText.trim();
+      if (currentInterim && !hasRecognizedTextRef.current) {
+        setInput((prev) => (prev ? `${prev} ${currentInterim}` : currentInterim));
+        hasRecognizedTextRef.current = true;
+      }
 
       // If MediaRecorder was active and WebSpeech captured nothing, fallback to Whisper
       if (audioRecorderRef.current) {
@@ -93,6 +107,7 @@ export const InputBar: React.FC<InputBarProps> = ({
 
     // Start recording & listening
     setIsListening(true);
+    isListeningRef.current = true;
     setInterimText('');
     hasRecognizedTextRef.current = false;
 
@@ -121,11 +136,30 @@ export const InputBar: React.FC<InputBarProps> = ({
         },
         async (err) => {
           console.warn('Browser speech recognition notice:', err);
-          // If browser speech fails, Whisper audio will be processed on stop
+          // If permission is denied, stop listening immediately
+          if (err?.error === 'not-allowed' || err?.error === 'service-not-allowed') {
+            isListeningRef.current = false;
+            setIsListening(false);
+            setInterimText('');
+          }
         },
         () => {
-          setIsListening(false);
-          setInterimText('');
+          // Bug #2 fix: if the user hasn't manually stopped, restart the recognizer.
+          // Wait 150ms before restart to avoid Chrome InvalidStateError race condition.
+          if (isListeningRef.current && recognizerRef.current) {
+            setTimeout(() => {
+              if (isListeningRef.current && recognizerRef.current) {
+                try {
+                  recognizerRef.current.start();
+                } catch (e) {
+                  console.debug('Speech recognition restart attempt:', e);
+                }
+              }
+            }, 150);
+          } else {
+            setIsListening(false);
+            setInterimText('');
+          }
         }
       );
 
@@ -155,8 +189,10 @@ export const InputBar: React.FC<InputBarProps> = ({
     if (!textToSend) return;
 
     if (isListening) {
+      isListeningRef.current = false;
       recognizerRef.current?.stop();
       audioRecorderRef.current?.stop().catch(() => {});
+      audioRecorderRef.current = null;
       setIsListening(false);
       setInterimText('');
     }

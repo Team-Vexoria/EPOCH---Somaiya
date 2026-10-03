@@ -134,15 +134,27 @@ export function createSpeechRecognizer(
     (window as any).webkitSpeechRecognition;
 
   const recognizer = new SpeechRecognition();
-  recognizer.continuous = false;
+  // Bug #1 fix: continuous=true keeps mic open past first pause.
+  // Without this the browser stops after ~1-2 s of silence and fires onend,
+  // making the mic appear to "close immediately".
+  recognizer.continuous = true;
   recognizer.interimResults = true;
+  // Bug #4 fix: 3 alternatives improves Marathi recognition hit rate.
+  recognizer.maxAlternatives = 3;
   recognizer.lang = getLanguageCodeForSpeech(lang);
 
   recognizer.onresult = (event: any) => {
     let interimText = '';
     for (let i = event.resultIndex; i < event.results.length; ++i) {
       if (event.results[i].isFinal) {
-        onFinal(event.results[i][0].transcript);
+        // Pick the highest-confidence alternative
+        let best = event.results[i][0];
+        for (let a = 1; a < event.results[i].length; a++) {
+          if (event.results[i][a].confidence > best.confidence) {
+            best = event.results[i][a];
+          }
+        }
+        onFinal(best.transcript);
       } else {
         interimText += event.results[i][0].transcript;
       }
@@ -153,9 +165,12 @@ export function createSpeechRecognizer(
   };
 
   recognizer.onerror = (event: any) => {
+    // 'no-speech' is not a real error — browser just heard silence. Ignore it.
+    if (event.error === 'no-speech') return;
     onError(event);
   };
 
+  // Bug #2 fix: onend is wired in InputBar with restart logic, not here.
   recognizer.onend = () => {
     onEnd();
   };
@@ -197,23 +212,36 @@ export class AudioRecorder {
 
   async stop(): Promise<Blob> {
     return new Promise((resolve) => {
-      if (!this.mediaRecorder) {
-        resolve(new Blob([], { type: 'audio/webm' }));
-        return;
-      }
-
-      this.mediaRecorder.onstop = () => {
+      const finish = () => {
         const audioBlob = new Blob(this.audioChunks, {
           type: this.mediaRecorder?.mimeType || 'audio/webm',
         });
         if (this.stream) {
-          this.stream.getTracks().forEach((t) => t.stop());
+          this.stream.getTracks().forEach((t) => {
+            try {
+              t.stop();
+            } catch {}
+          });
           this.stream = null;
         }
         resolve(audioBlob);
       };
 
-      this.mediaRecorder.stop();
+      if (!this.mediaRecorder || this.mediaRecorder.state === 'inactive') {
+        finish();
+        return;
+      }
+
+      this.mediaRecorder.onstop = () => {
+        finish();
+      };
+
+      try {
+        this.mediaRecorder.stop();
+      } catch (err) {
+        console.warn('AudioRecorder stop caught error, finishing directly:', err);
+        finish();
+      }
     });
   }
 }

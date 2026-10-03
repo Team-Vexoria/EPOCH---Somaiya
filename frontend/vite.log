@@ -1,0 +1,14 @@
+
+> frontend@0.1.0 dev
+> vite --host --port 5173
+
+
+  [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m1558[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
+  [32m➜[39m  [1mNetwork[22m: [36mhttp://172.25.233.179:[1m5173[22m/[39m
+[2m[32m  ➜[39m[22m[2m  press [22m[1mh + enter[22m[2m to show help[22m
+[2m8:29:31 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/LanguagePage.tsx, /src/components/chat/InputBar.tsx, /src/components/chat/MessageItem.tsx[22m
+[2m8:29:57 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/chat/InputBar.tsx, /src/index.css[22m
+[2m8:49:48 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/index.css, /src/pages/LanguagePage.tsx, /src/components/chat/InputBar.tsx, /src/components/chat/MessageItem.tsx[22m
+[2m8:50:16 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/chat/InputBar.tsx, /src/index.css[22m

@@ -13,7 +13,39 @@ CRAG pipeline can compute the same village-origin-aware freight costs.
 """
 
 import math
+import csv
+from pathlib import Path
 from typing import Dict, Any, List
+
+# ────────────────────────────────────────────────────────────────
+# Forecast uncertainty (per-crop MAE from data/outputs/baseline_backtest.csv)
+# moving_average_3m residuals; fallback 300 if file missing.
+# Note: CSV uses 'soyabean' spelling; normalized to 'soybean' below.
+# ────────────────────────────────────────────────────────────────
+def _load_crop_mae() -> Dict[str, float]:
+    defaults: Dict[str, float] = {"onion": 300.0, "tomato": 300.0, "soybean": 300.0}
+    try:
+        csv_path = Path(__file__).resolve().parent / ".." / "data" / "outputs" / "baseline_backtest.csv"
+        if not csv_path.exists():
+            return defaults
+        with open(csv_path, newline="", encoding="utf-8") as f:
+            for row in csv.DictReader(f):
+                if row.get("model") != "moving_average_3m":
+                    continue
+                crop = (row.get("crop") or "").strip().lower()
+                if crop == "soyabean":
+                    crop = "soybean"
+                try:
+                    mae = float(row.get("mean_absolute_error_rs_per_quintal") or 0)
+                except ValueError:
+                    continue
+                if crop and mae > 0:
+                    defaults[crop] = mae
+    except Exception:
+        pass
+    return defaults
+
+CROP_MAE: Dict[str, float] = _load_crop_mae()
 
 # ────────────────────────────────────────────────────────────────
 # Village Coordinates  (source: frontend/src/config/villages.ts)
@@ -415,8 +447,21 @@ def calculate_logical_mandi_price(crop_id: str, mandi_id: str, horizon_days: int
     arrival_adjustment = -15 if arrivals >= 35000 else 0
 
     forecast_price = max(500, base_benchmark + liquidity_premium + specialty_bonus + horizon_shift + arrival_adjustment)
+
+    # Honest uncertainty band from historical residuals (weekly-scaled MAE,
+    # floored by 40+18*days heuristic so day-0 bands stay readable).
+    mae = CROP_MAE.get(crop_id, 300.0)
+    mae_spread = (mae / 4.0) * (1 + horizon_days / 7.0)
+    heuristic_spread = 40 + horizon_days * 18
+    spread = round(max(mae_spread, heuristic_spread))
+    forecast_low = max(500, forecast_price - spread)
+    forecast_high = forecast_price + spread
     return {
         "forecast_price": forecast_price,
+        "forecast_low": forecast_low,
+        "forecast_high": forecast_high,
+        "band_spread": spread,
+        "band_mae": round(mae, 1),
         "base_benchmark": base_benchmark,
         "liquidity_premium": liquidity_premium,
         "specialty_bonus": specialty_bonus,
@@ -481,6 +526,7 @@ def generate_heatmap_data(crop_id: str = "onion", horizon_days: int = 0, village
         transport = transport_details["total_per_qtl"]
         spoilage = spoilage_details["loss_per_qtl"]
         net_return = forecast - transport - spoilage
+        band_spread = price_details.get("band_spread", 40 + horizon_days * 18)
 
         daily_step = -22 if crop_id == "tomato" else (16 if crop_id == "onion" else 10)
         sparkline = [
@@ -502,9 +548,13 @@ def generate_heatmap_data(crop_id: str = "onion", horizon_days: int = 0, village
             "lng": m["lng"],
             "distanceKm": dist,
             "forecastPrice": forecast,
+            "forecastLow": price_details.get("forecast_low", forecast),
+            "forecastHigh": price_details.get("forecast_high", forecast),
             "transportCost": transport,
             "spoilageLoss": spoilage,
             "netReturn": net_return,
+            "netLow": net_return - band_spread,
+            "netHigh": net_return + band_spread,
             "arrivalsTodayQuintals": 35000 if mid in ("lasalgaon", "pimpalgaon") else 15000,
             "confidence": "LOW" if horizon_days > 7 else ("MEDIUM" if horizon_days > 3 else "HIGH"),
             "sparkline": sparkline,
