@@ -58,8 +58,8 @@ LLM_BASE_URL = os.environ.get("LLM_BASE_URL", "https://api.groq.com/openai/v1")
 LLM_API_KEY = os.environ.get("LLM_API_KEY") or os.environ.get("GROQ_API_KEY", "")
 TAVILY_API_KEY = os.environ.get("TAVILY_API_KEY", "")
 
-SCORE_THRESHOLD = 0.01  # Low threshold: ONNX MiniLM cosine scores are 0.02–0.39 for domain docs; LLM grader handles filtering
-MAX_WEB_CHARS = 750
+SCORE_THRESHOLD = 0.01
+MAX_WEB_CHARS = 1600
 
 # Resolve path relative to this file so it works regardless of cwd
 _BACKEND_DIR = Path(__file__).resolve().parent
@@ -100,8 +100,8 @@ def get_vector_db():
 
 chroma_db = get_vector_db()
 similarity_threshold_retriever = chroma_db.as_retriever(
-    search_type="similarity_score_threshold",
-    search_kwargs={"k": 5, "score_threshold": SCORE_THRESHOLD}
+    search_type="similarity",
+    search_kwargs={"k": 4}
 )
 
 # ---------------------------------------------------------
@@ -181,33 +181,65 @@ User question:
 doc_grader = (grade_prompt | structured_llm_grader).with_retry(stop_after_attempt=3)
 
 # 2. QA RAG Chain
-PROMPT_QA = """You are Sell Smart, the dedicated agricultural market advisory assistant for Nashik District, Maharashtra.
+PROMPT_QA = """You are Sell Smart (स्मार्ट कृषी सल्लागार), an expert AI agricultural market advisor for farmers and traders in Nashik District, Maharashtra.
 
-CORE DATASET CONTEXT:
-- Our primary APMC historical dataset covers the years 2014–2016 for Nashik district mandis (Lasalgaon, Pimpalgaon, Malegaon, Kopargaon, Ahmednagar, Satana, Rahuri, etc.) across Onion, Tomato, and Soybean.
-- If the user asks which year or dataset we have: State clearly and concisely that our historical APMC baseline dataset is from 2014 to 2016, and for today's current spot prices we query live Agmarknet / APMC feeds.
-
-Advisory Rules:
-1. LIVE SPOT RATES: If the context contains live Agmarknet / APMC web search results, lead with that spot rate and clearly label it as '🔴 आजचा थेट बाजारभाव (Live APMC / Agmarknet Spot Rate)'.
-2. HISTORICAL BASELINE: Use the 2014-2016 dataset for baseline seasonal trends, transport freight calculations (~₹3/km/quintal), and storage guidance (e.g. 10–21 day ventilated chawl for onions vs immediate 24-48h sale for tomatoes).
-3. TRANSPARENCY: Always cite whether a price is from the 2014-2016 historical dataset or a live Agmarknet feed. Never hallucinate spot rates.
-4. LANGUAGE: If the query is in Marathi or Hindi, reply in that language with clear bullet points. If in English, reply in English.
-5. Keep your response concise, clear, and actionable for farmers.
-
-Question:
-{question}
+STRICT ACCURACY & PRESENTATION RULES:
+1. LATEST DATE & FACTUAL ACCURACY (CRITICAL):
+   - When context contains live APMC / Agmarknet search results, scan all snippets for their REPORTING DATES.
+   - Always prioritize and extract data from the MOST RECENT / LATEST dated report (e.g., September/October 2026). NEVER cite an older 2024/2025 snippet if a 2026 update is available.
+   - Extract and state the EXACT reported figures:
+     • Reported Date (उदा. 1 ऑक्टोबर 2026 / 30 सप्टेंबर 2026)
+     • Modal Price (मोडल / सरासरी दर) in ₹/quintal and ₹/kg (1 quintal = 100 kg)
+     • Minimum and Maximum Price Range (किमान - कमाल दर)
+     • Total Arrivals / Volume (if reported in the snippet)
+   - Never hallucinate, invent, or guess prices. Quote the exact numbers from the most recent verified snippet.
+2. CLEAN HUMAN ADVISORY STRUCTURE:
+   - Begin with a warm, natural conversational greeting and state the exact spot price immediately.
+   - Present price details in clean, scannable bullet points (e.g. • **मोडल दर (Modal Price):** ₹X / क्विंटल (₹X / किलो)).
+   - Provide practical guidance (net returns after transport costs, near-term vs holding decision).
+   - Strictly NO raw ASCII pipe tables, NO horizontal divider lines (---), NO asterisk footnotes (*Range reflects...), and NO raw URLs or bracketed citations.
+3. DATASET CONTEXT & TRANSPARENCY:
+   - Historical APMC Baseline Dataset: Covers 2014 to 2016 APMC records across Nashik district mandis (Lasalgaon, Pimpalgaon, Malegaon, Kopargaon, Rahuri, Satana, etc.) for Onion, Tomato, and Soybean.
+   - Live Spot Rates: Sourced from current Agmarknet / APMC mandi updates.
+4. STRICT LANGUAGE MATCHING:
+   - If the user's question is in English, answer entirely in English.
+   - If the user's question is in Marathi (मराठी), answer in fluent, respectful Marathi with standard agricultural terms.
+   - If the user's question is in Hindi (हिंदी), answer in Hindi.
 
 Context:
 {context}
+
+Question:
+{question}
 
 Answer:"""
 
 prompt_template = ChatPromptTemplate.from_template(PROMPT_QA)
 
+import re
+
+def sanitize_response_text(text: str) -> str:
+    """Clean up any raw bracketed links, URLs, double pipes, or formatting artifacts from model output."""
+    if not text:
+        return ""
+    # Strip bracketed search citation markers like 【https://...】 or 【1】
+    text = re.sub(r"【.*?】", "", text)
+    # Convert markdown links [Label](url) to plain Label
+    text = re.sub(r"\[([^\]]+)\]\(https?://[^\)]+\)", r"\1", text)
+    # Strip any stray raw URLs
+    text = re.sub(r"https?://\S+", "", text)
+    # Fix accidental single-line double-pipe table glitches (e.g. || Rahuri | -> \n| Rahuri |)
+    text = re.sub(r"\|\|\s*", "\n| ", text)
+    # Remove raw horizontal rule lines (--- or ___) that clutter the assistant message
+    text = re.sub(r"^[ \t]*[-_]{3,}[ \t]*$", "", text, flags=re.MULTILINE)
+    # Normalize excess blank lines
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text.strip()
+
 def format_docs(docs):
     formatted = []
     total_chars = 0
-    MAX_TOTAL_CONTEXT = 3000  # Strict context budget to prevent token limit errors
+    MAX_TOTAL_CONTEXT = 4500  # Generous context budget for detailed price feeds
     for doc in docs:
         content = doc.page_content.strip() if hasattr(doc, 'page_content') else str(doc).strip()
         if total_chars + len(content) > MAX_TOTAL_CONTEXT:
@@ -224,6 +256,7 @@ base_qa_chain = (
     | prompt_template
     | chatgpt
     | StrOutputParser()
+    | RunnableLambda(sanitize_response_text)
 )
 
 def _qa_rag_call(inputs: dict) -> str:
@@ -236,12 +269,16 @@ def _qa_rag_call(inputs: dict) -> str:
 qa_rag_chain = RunnableLambda(_qa_rag_call)
 
 # 3. Query Rephraser for Live Agricultural Search
-SYS_PROMPT_REWRITE = """Act as an agricultural query optimizer for web search.
+SYS_PROMPT_REWRITE = """You are an expert agricultural query optimizer for Indian APMC mandi price searches.
 Your task:
-- Convert the user's question into a specific search query strictly targeting Indian agricultural market feeds for Nashik/Maharashtra (Agmarknet, MSAMB, APMC mandi rates).
-- Extract the crop (Onion, Tomato, Soybean), the mandi name (Pimpalgaon, Lasalgaon, Nashik APMC), and location (Maharashtra).
-- Append 'Agmarknet Maharashtra APMC mandi price today'.
-- Output ONLY the optimized search query string, nothing else."""
+- Extract the crop name (e.g. Onion, Tomato, Soybean) and the mandi/region name (e.g. Lasalgaon, Pimpalgaon, Malegaon, Maharashtra).
+- Construct a natural, highly effective search query targeting official APMC daily modal price records.
+- Format: "{{mandi}} APMC {{crop}} mandi price today per quintal modal rate"
+- Examples:
+  • "What is the live tomato rate today in Pimpalgaon?" -> "Pimpalgaon APMC tomato mandi price today per quintal modal rate"
+  • "What is the live onion modal price in Lasalgaon APMC today?" -> "Lasalgaon APMC onion mandi price today per quintal modal rate"
+  • "What is the current soybean price in Maharashtra APMC mandis?" -> "Maharashtra APMC soybean mandi price today per quintal modal rate"
+- Output ONLY the clean query string, with no quotes or extra text."""
 
 re_write_prompt = ChatPromptTemplate.from_messages([
     ("system", SYS_PROMPT_REWRITE),
@@ -262,12 +299,12 @@ def _rewriter_call(inputs: dict) -> str:
 
 question_rewriter = RunnableLambda(_rewriter_call)
 
-# 4. Web Search Tool (Direct Tavily HTTP API with DuckDuckGo fallback)
+# 4. Web Search Tool (Direct Tavily HTTP API with Fast Fallback)
 @tool
 def search_web(query: str) -> list:
     """Search the web for live agricultural market data, Agmarknet rates, and news."""
     tavily_key = os.environ.get("TAVILY_API_KEY", "")
-    target_query = f"{query} Agmarknet Maharashtra APMC mandi price" if "agmarknet" not in query.lower() else query
+    target_query = query.strip()
 
     if tavily_key and tavily_key != "your_tavily_api_key_here":
         try:
@@ -276,11 +313,11 @@ def search_web(query: str) -> list:
                 json={
                     "api_key": tavily_key,
                     "query": target_query,
-                    "max_results": 2,
+                    "max_results": 4,
                     "search_depth": "basic",
-                    "include_answer": False
+                    "include_answer": True
                 },
-                timeout=3.5
+                timeout=4.5
             )
             if resp.status_code == 200:
                 data = resp.json()
@@ -289,21 +326,20 @@ def search_web(query: str) -> list:
                 for r in results:
                     title = r.get("title", "")
                     content = r.get("content", "")
-                    url = r.get("url", "")
                     if content:
-                        clean_snippet = content[:MAX_WEB_CHARS].replace("\n", " ")
-                        snippets.append(f"[Agmarknet / APMC Source: {title} | {url}]\n{clean_snippet}")
+                        clean_snippet = content[:MAX_WEB_CHARS].replace("\n", " ").strip()
+                        snippets.append(f"Mandi Live Report ({title}): {clean_snippet}")
                 if snippets:
-                    print(f"---TAVILY SEARCH RETURNED {len(snippets)} LIVE RESULTS---")
+                    print(f"---TAVILY SEARCH RETURNED {len(snippets)} HIGH-PRECISION LIVE RESULTS---")
                     return snippets
         except Exception as e:
-            print(f"Tavily search API failed ({e}). Falling back to DuckDuckGo...")
+            print(f"Tavily search API error ({e}). Falling back to DuckDuckGo...")
 
     # Fallback to DuckDuckGo
     try:
         from duckduckgo_search import DDGS
         with DDGS() as ddgs:
-            results = list(ddgs.text(target_query, max_results=3))
+            results = list(ddgs.text(target_query, max_results=4))
             return [r.get("body", "")[:MAX_WEB_CHARS] for r in results if r.get("body")]
     except Exception as e:
         print(f"DuckDuckGo search error ({e}). Returning empty results.")

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import {
   Building2,
   TrendingUp,
@@ -12,6 +13,7 @@ import {
   Clock,
   Layers,
   ArrowUpRight,
+  ArrowLeft,
   ShieldCheck,
   Info,
 } from 'lucide-react';
@@ -43,6 +45,7 @@ const ALLOCATION_COLORS = [
 
 export const FpoPage: React.FC = () => {
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
   const currentLang = i18n.language || 'mr';
 
   // Form Inputs
@@ -142,17 +145,34 @@ export const FpoPage: React.FC = () => {
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header & Value Proposition */}
         <div className="bg-neutral-surface border-2 border-neutral-border p-5 md:p-6 shadow-hard flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="inline-flex items-center gap-2 bg-primary-subtle border border-primary px-3 py-1 text-sm font-bold text-primary mb-2">
-              <Building2 className="w-4 h-4" />
-              <span>Farmer Producer Organisation (FPO) Mode</span>
+          <div className="flex items-start sm:items-center gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                if (window.history.length > 1) {
+                  navigate(-1);
+                } else {
+                  navigate('/chat');
+                }
+              }}
+              className="px-3.5 py-2 bg-neutral-surface hover:bg-neutral-bg text-neutral-ink border-2 border-neutral-ink font-black text-base shadow-hard cursor-pointer flex items-center gap-1.5 transition-transform active:translate-x-0.5 active:translate-y-0.5 shrink-0"
+              aria-label="Back"
+            >
+              <ArrowLeft className="w-5 h-5 text-primary" />
+              <span>{currentLang === 'mr' ? 'मागे जा' : currentLang === 'hi' ? 'पीछे जाएं' : 'Back'}</span>
+            </button>
+            <div>
+              <div className="inline-flex items-center gap-2 bg-primary-subtle border border-primary px-3 py-1 text-sm font-bold text-primary mb-2">
+                <Building2 className="w-4 h-4" />
+                <span>Farmer Producer Organisation (FPO) Mode</span>
+              </div>
+              <h1 className="text-2xl md:text-4xl font-extrabold text-neutral-ink">
+                {t('fpo.title')}
+              </h1>
+              <p className="text-base text-neutral-muted mt-1 max-w-2xl">
+                {t('fpo.subtitle')}
+              </p>
             </div>
-            <h1 className="text-2xl md:text-4xl font-extrabold text-neutral-ink">
-              {t('fpo.title')}
-            </h1>
-            <p className="text-base text-neutral-muted mt-1 max-w-2xl">
-              {t('fpo.subtitle')}
-            </p>
           </div>
 
           {/* Action buttons (CSV & Print) */}

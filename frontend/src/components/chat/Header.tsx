@@ -10,7 +10,6 @@ import {
   MapPin,
 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
-import { CROPS } from '../../config/crops';
 import { SUPPORTED_LANGUAGES } from '../../config/constants';
 import type { Language } from '../../types';
 
@@ -33,7 +32,7 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const { language, setLanguage, crops } = useAppStore();
+  const { language, setLanguage } = useAppStore();
   const currentLang = (i18n.language as Language) || language || 'mr';
 
   const handleLanguageToggle = () => {
@@ -116,30 +115,6 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </button>
         )}
-
-        {/* Farmer's Crop Chips */}
-        <div className="hidden lg:flex items-center gap-1.5">
-          {crops.map((cropId) => {
-            const crop = CROPS[cropId];
-            if (!crop) return null;
-            const cropName =
-              currentLang === 'mr'
-                ? crop.name_mr
-                : currentLang === 'hi'
-                ? crop.name_hi
-                : crop.name_en;
-
-            return (
-              <span
-                key={cropId}
-                className="inline-flex items-center gap-1 px-2 py-0.5 border border-neutral-ink bg-neutral-bg text-sm font-bold text-neutral-ink"
-              >
-                <span>{crop.emoji}</span>
-                <span>{cropName}</span>
-              </span>
-            );
-          })}
-        </div>
 
         {/* Language Pill (Click to toggle language) */}
         <button

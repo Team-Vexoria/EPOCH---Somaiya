@@ -96,18 +96,18 @@ export async function sendMessage({
     const data = await response.json();
     const rawText = data.answer || data.text || 'No response generated from CRAG.';
 
-    // Stream tokens in fast natural chunks (sub-second UI delivery)
-    const words = rawText.split(' ');
+    // Stream tokens in fast natural chunks without corrupting newlines or markdown
+    const tokens = rawText.match(/(\s+|\S+)/g) || [rawText];
     let accumulated = '';
-    const chunkSize = 4;
+    const chunkSize = 6;
 
-    for (let i = 0; i < words.length; i += chunkSize) {
+    for (let i = 0; i < tokens.length; i += chunkSize) {
       if (signal?.aborted) {
         throw new DOMException('Aborted by user', 'AbortError');
       }
 
-      const chunk = words.slice(i, i + chunkSize).join(' ');
-      accumulated += (i === 0 ? '' : ' ') + chunk;
+      const chunk = tokens.slice(i, i + chunkSize).join('');
+      accumulated += chunk;
       onChunk(accumulated);
 
       await new Promise((resolve) => setTimeout(resolve, 8));

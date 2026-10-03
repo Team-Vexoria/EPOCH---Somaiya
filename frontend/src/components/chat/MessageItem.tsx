@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import {
   Sprout,
   Copy,
@@ -10,14 +11,10 @@ import {
   RotateCw,
   ThumbsUp,
   ThumbsDown,
-  User,
-  ChevronDown,
-  ChevronUp,
-  BookOpen,
 } from 'lucide-react';
 import type { Message, Language } from '../../types';
 import { RecommendationCard } from './RecommendationCard';
-import { speakText, stopSpeaking, getIsSpeaking } from '../../services/speech';
+import { speakText, stopSpeaking } from '../../services/speech';
 
 interface MessageItemProps {
   message: Message;
@@ -25,6 +22,18 @@ interface MessageItemProps {
   onRegenerate?: () => void;
   onFeedback?: (feedback: 'up' | 'down') => void;
   onOpenCalculator?: (cropId: string) => void;
+}
+
+function cleanMarkdown(content: string): string {
+  if (!content) return '';
+  return content
+    // Fix single-line double-pipe table glitches (e.g. || Mandi | -> \n| Mandi |)
+    .replace(/\|\|\s*/g, '\n| ')
+    // Remove horizontal rule divider lines
+    .replace(/^[ \t]*[-_]{3,}[ \t]*$/gm, '')
+    // Clean up excess newlines
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
 
 export const MessageItem: React.FC<MessageItemProps> = ({
@@ -39,7 +48,6 @@ export const MessageItem: React.FC<MessageItemProps> = ({
 
   const [copied, setCopied] = useState(false);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
-  const [isTextExpanded, setIsTextExpanded] = useState(false);
 
   const isUser = message.role === 'user';
 
@@ -88,108 +96,75 @@ export const MessageItem: React.FC<MessageItemProps> = ({
       <div className="flex-1 min-w-0">
         <div className="text-base text-neutral-ink leading-relaxed font-normal">
           {message.content ? (
-            <>
-              {(() => {
-                // If message has long multi-paragraph text and isn't streaming,
-                // show the first key paragraph summary with a "Read More" button
-                const paragraphs = message.content.split(/\n\n+/).filter(Boolean);
-                const hasLongContent =
-                  paragraphs.length > 1 || message.content.length > 220;
-                const contentToRender =
-                  !isTextExpanded && hasLongContent && !isStreaming
-                    ? paragraphs[0]
-                    : message.content;
-
-                return (
-                  <>
-                    <ReactMarkdown
-                      components={{
-                        h1: ({ children }) => (
-                          <h1 className="text-2xl sm:text-3xl font-black text-neutral-ink mt-3 mb-2">
-                            {children}
-                          </h1>
-                        ),
-                        h2: ({ children }) => (
-                          <h2 className="text-xl sm:text-2xl font-black text-neutral-ink mt-3 mb-2">
-                            {children}
-                          </h2>
-                        ),
-                        h3: ({ children }) => (
-                          <h3 className="text-lg sm:text-xl font-bold text-neutral-ink mt-2 mb-1.5">
-                            {children}
-                          </h3>
-                        ),
-                        p: ({ children }) => (
-                          <p className="mb-2.5 text-base sm:text-lg leading-relaxed text-neutral-ink font-medium">
-                            {children}
-                          </p>
-                        ),
-                        ul: ({ children }) => (
-                          <ul className="list-disc list-inside space-y-1.5 mb-2.5 ml-1 text-base sm:text-lg">
-                            {children}
-                          </ul>
-                        ),
-                        ol: ({ children }) => (
-                          <ol className="list-decimal list-inside space-y-1.5 mb-2.5 ml-1 text-base sm:text-lg">
-                            {children}
-                          </ol>
-                        ),
-                        li: ({ children }) => (
-                          <li className="text-base sm:text-lg text-neutral-ink leading-relaxed">
-                            {children}
-                          </li>
-                        ),
-                        strong: ({ children }) => (
-                          <strong className="font-black text-neutral-ink">
-                            {children}
-                          </strong>
-                        ),
-                        table: ({ children }) => (
-                          <div className="overflow-x-auto my-3 border-2 border-neutral-ink">
-                            <table className="w-full text-left text-base">
-                              {children}
-                            </table>
-                          </div>
-                        ),
-                        th: ({ children }) => (
-                          <th className="bg-neutral-bg p-2.5 border-b-2 border-neutral-ink font-black text-neutral-ink text-sm">
-                            {children}
-                          </th>
-                        ),
-                        td: ({ children }) => (
-                          <td className="p-2.5 border-b border-neutral-border text-neutral-ink font-semibold text-base">
-                            {children}
-                          </td>
-                        ),
-                      }}
-                    >
-                      {contentToRender}
-                    </ReactMarkdown>
-
-                    {/* Progressive Disclosure Toggle Button for Farmers */}
-                    {hasLongContent && !isStreaming && (
-                      <button
-                        type="button"
-                        onClick={() => setIsTextExpanded(!isTextExpanded)}
-                        className="mt-1 min-h-[44px] py-1 text-base font-black text-primary hover:underline flex items-center gap-1.5 cursor-pointer select-none"
-                      >
-                        <BookOpen className="w-4 h-4 text-primary shrink-0" />
-                        <span>
-                          {isTextExpanded
-                            ? t('recommendation.showLessText')
-                            : t('recommendation.readMoreText')}
-                        </span>
-                        {isTextExpanded ? (
-                          <ChevronUp className="w-4 h-4 text-primary shrink-0" />
-                        ) : (
-                          <ChevronDown className="w-4 h-4 text-primary shrink-0" />
-                        )}
-                      </button>
-                    )}
-                  </>
-                );
-              })()}
-            </>
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                h1: ({ children }) => (
+                  <h1 className="text-2xl sm:text-3xl font-black text-neutral-ink mt-3 mb-2">
+                    {children}
+                  </h1>
+                ),
+                h2: ({ children }) => (
+                  <h2 className="text-xl sm:text-2xl font-black text-neutral-ink mt-3 mb-2">
+                    {children}
+                  </h2>
+                ),
+                h3: ({ children }) => (
+                  <h3 className="text-lg sm:text-xl font-bold text-neutral-ink mt-2 mb-1.5">
+                    {children}
+                  </h3>
+                ),
+                p: ({ children }) => (
+                  <p className="mb-2.5 text-base sm:text-lg leading-relaxed text-neutral-ink font-medium">
+                    {children}
+                  </p>
+                ),
+                ul: ({ children }) => (
+                  <ul className="list-disc list-inside space-y-1.5 mb-2.5 ml-1 text-base sm:text-lg">
+                    {children}
+                  </ul>
+                ),
+                ol: ({ children }) => (
+                  <ol className="list-decimal list-inside space-y-1.5 mb-2.5 ml-1 text-base sm:text-lg">
+                    {children}
+                  </ol>
+                ),
+                li: ({ children }) => (
+                  <li className="text-base sm:text-lg text-neutral-ink leading-relaxed">
+                    {children}
+                  </li>
+                ),
+                strong: ({ children }) => (
+                  <strong className="font-black text-neutral-ink">
+                    {children}
+                  </strong>
+                ),
+                blockquote: ({ children }) => (
+                  <blockquote className="border-l-4 border-primary pl-3 py-1.5 my-2.5 bg-neutral-bg text-neutral-ink font-medium text-base">
+                    {children}
+                  </blockquote>
+                ),
+                table: ({ children }) => (
+                  <div className="overflow-x-auto my-3 border-2 border-neutral-ink shadow-hard">
+                    <table className="w-full text-left text-base border-collapse">
+                      {children}
+                    </table>
+                  </div>
+                ),
+                th: ({ children }) => (
+                  <th className="bg-neutral-bg p-2.5 border-b-2 border-neutral-ink font-black text-neutral-ink text-sm uppercase">
+                    {children}
+                  </th>
+                ),
+                td: ({ children }) => (
+                  <td className="p-2.5 border-b border-neutral-border text-neutral-ink font-semibold text-base">
+                    {children}
+                  </td>
+                ),
+              }}
+            >
+              {cleanMarkdown(message.content)}
+            </ReactMarkdown>
           ) : isStreaming ? (
             <div className="flex items-center gap-1.5 py-2">
               <span className="w-2.5 h-2.5 rounded-full bg-primary animate-bounce"></span>
