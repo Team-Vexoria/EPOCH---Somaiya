@@ -1,5 +1,12 @@
 export const APP_NAME = 'Mohra';
 
+export function getApiBaseUrl(): string {
+  const raw = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+  return raw.trim().replace(/\/+$/, '');
+}
+
+export const API_BASE_URL = getApiBaseUrl();
+
 export const AUTH_CONFIG = {
   fixedOtp: '123456',
   allowAnyOtp: true,

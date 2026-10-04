@@ -1,6 +1,6 @@
 import { RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult } from 'firebase/auth';
 import { auth, isFirebaseConfigured } from '../lib/firebase';
-import { AUTH_CONFIG } from '../config/constants';
+import { AUTH_CONFIG, API_BASE_URL } from '../config/constants';
 
 /**
  * Authentication Service
@@ -56,9 +56,7 @@ export async function sendOtp(phone: string): Promise<SendOtpResult> {
 
   // 1. Primary: Meta WhatsApp Cloud API Direct Dispatch
   try {
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-    const lang = localStorage.getItem('Mohra_language') || 'en';
-    const res = await fetch(`${apiUrl}/api/send-whatsapp-otp`, {
+    const res = await fetch(`${API_BASE_URL}/api/send-whatsapp-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

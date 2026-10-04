@@ -13,8 +13,8 @@ import {
   generateMockFpoPlan,
   generateMockBacktest,
 } from './mockData';
-
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+import { API_BASE_URL } from '../config/constants';
+export { API_BASE_URL };
 export const USE_MOCKS = import.meta.env.VITE_USE_MOCKS === 'true'; // Defaults to false: connects to live CRAG backend
 
 /**

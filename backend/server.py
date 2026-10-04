@@ -3,6 +3,7 @@ import sys
 import time
 import json
 import asyncio
+import re
 from typing import List, Dict, Any, Optional
 
 from fastapi import FastAPI, HTTPException, Query, File, UploadFile, Form
@@ -68,6 +69,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Normalize duplicate slashes in incoming request URLs (e.g., //api/chat -> /api/chat)
+@app.middleware("http")
+async def normalize_path_middleware(request, call_next):
+    if "//" in request.scope.get("path", ""):
+        request.scope["path"] = re.sub(r"/+", "/", request.scope["path"])
+    return await call_next(request)
 
 # Attach WhatsApp Bot Router (/whatsapp/twilio, /whatsapp/meta, /whatsapp/test)
 app.include_router(whatsapp_router)
